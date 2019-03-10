@@ -196,3 +196,9 @@ Each app's load script is stored as its own file, with the app ID as the file na
 
     Unqualify *;
 
+## Analysing the generated files
+
+There are currently no analysis apps included in the project.
+This should be fairly easy to create though. The data lineage CSV file can be loaded into a Sense app and from there be made available for analysis.
+
+The load script .qvs files could be zipped into a daily archive by means of a scheduled task, using the standard OS scheduler.
