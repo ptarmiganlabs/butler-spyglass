@@ -58,8 +58,72 @@ Once the config file is in place there are several ways to run Butler Spyglass.
 Using Docker arguably the easiest way to deploy Butler Spyglass. A few things to keep in mind though:
 
 * The NODE_ENV variable in the ```docker-compose.yml``` file controls what config file will be used. If NODE_ENV is set to *production*, the file ```./config/production.yaml``` will be used.
-* The output directories defined in the ```./config/production.yaml``` file must match the volume mapping in the docker-compose.yml file. I.e. if the config file defines the output directories as ```./myoutdir/lineage``` ```./myoutdir/script```, the docker-compose file must map the containers /nodeapp/myoutdir to an existing directory on the Docker host:
-```./out:/nodeapp/myoutdir```.
+* The output directories defined in the ```./config/production.yaml``` file must match the volume mapping in the docker-compose.yml file. I.e. if the config file defines the output directories as ```./out/lineage``` ```./myoutdir/script```, the docker-compose file must map the containers /nodeapp/myoutdir to an existing directory on the Docker host:
+```./out:/nodeapp/out```.
+
+Looking at the directory structure and the config files, they could look as follows:
+
+*Directory structure*:
+
+    .
+    ├── config
+    │   ├── certificate
+    │   │   ├── client.pem
+    │   │   ├── client_key.pem
+    │   │   └── root.pem
+    │   └── production.yaml
+    ├── docker-compose.yml
+    └── out
+       ├── lineage
+       └── script
+
+*config/production.yaml*:
+
+    ---
+    ButlerSpyglass:
+    # Possible log levels are silly, debug, verbose, info, warn, error
+    logLevel: verbose
+
+    # Extract configuration
+    extractFrequency: 60000    # milliseconds
+    extractItemInterval: 100    # milliseconds
+
+    lineage:
+        enableLineageExtract: true
+        lineageFolder: ./out/lineage
+
+    script:
+        enableScriptExtract: true
+        scriptFolder: ./out/script
+
+    configEngine:
+        engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019
+        server: sense.ptarmiganlabs.net
+        serverPort: 4747
+        isSecure: true
+        headers:
+        X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+        ca: /nodeapp/config/certificate/root.pem
+        cert: /nodeapp/config/certificate/client.pem
+        key: /nodeapp/config/certificate/client_key.pem
+        rejectUnauthorized: false
+
+*docker-compose.yml*:
+
+    version: '3.3'
+    services:
+    butler-spyglass:
+        image: ptarmiganlabs/butler-spyglass:1.0.0
+        container_name: butler-spyglass
+        restart: always
+        volumes:
+        # Make config file and output directories are accessible outside of container
+        - "./config:/nodeapp/config"
+        - "./out:/nodeapp/out"
+        environment:
+        - "NODE_ENV=production"
+        logging:
+        driver: json-file
 
 ## Sample output
 
