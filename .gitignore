@@ -1,12 +1,14 @@
 # Project specific
 
 node_modules/*
+config/certificate/*
 config/production.yaml
 config/default.yaml
 config/development.yaml
 npm-debug.log
 .DS_Store
 out/*
+
 
 
 # ---> Node
