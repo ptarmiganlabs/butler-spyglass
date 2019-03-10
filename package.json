@@ -1,0 +1,33 @@
+{
+  "name": "butler-spyglass",
+  "version": "1.0.0",
+  "description": "Utility for extracting various metadata for all applications in Qlik Sense Enterprise environment",
+  "main": "index.js",
+  "dependencies": {
+    "better-queue": "^3.8.10",
+    "config": "^3.0.1",
+    "csv-writer": "^1.2.0",
+    "enigma.js": "^2.4.0",
+    "fs-extra": "^7.0.1",
+    "js-yaml": "^3.12.2",
+    "winston": "^3.2.1",
+    "ws": "^6.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "Göran Sander",
+  "license": "MIT",
+  "keywords": [
+    "butler",
+    "butler-spyglass",
+    "senseops",
+    "devops",
+    "qliksense"
+  ]
+}

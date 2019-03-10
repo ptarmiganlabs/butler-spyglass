@@ -1,0 +1,30 @@
+---
+ButlerSpyglass:
+  # Possible log levels are silly, debug, verbose, info, warn, error
+  logLevel: verbose
+
+  # Extract configuration
+  extractFrequency: 60000    # milliseconds
+  extractItemInterval: 100    # milliseconds
+
+  lineage:
+    enableLineageExtract: true
+    lineageFolder: ./out/lineage
+
+  script:
+    enableScriptExtract: true
+    scriptFolder: ./out/script
+
+
+  configEngine:
+    engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019 
+    server: <Fully qualified domain name of Qlik Sense Enterprise server from which data should be retrieved>
+    serverPort: 4747
+    isSecure: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+    ca: /path/to/certificate/experted/from/sense/root.pem
+    cert: /path/to/certificate/experted/from/sense/client.pem
+    key: /path/to/certificate/experted/from/sense/client_key.pem
+    rejectUnauthorized: false
+
