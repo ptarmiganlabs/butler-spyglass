@@ -19,8 +19,12 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/ptarmiganlabs/butler-spyglass.git"
   },
+  "bugs": {
+    "url": "https://github.com/ptarmiganlabs/butler-spyglass/issues"
+  },
+  "homepage": "https://github.com/ptarmiganlabs/butler-spyglass/blob/master/README.md",
   "author": "Göran Sander",
   "license": "MIT",
   "keywords": [
