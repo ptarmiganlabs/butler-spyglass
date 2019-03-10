@@ -1,0 +1,16 @@
+# docker-compose.yml
+version: '3.3'
+services:
+  butler-sos:
+    image: ptarmiganlabs/butler-spyglass:latest
+    init: true
+    container_name: butler-spyglass
+    restart: always
+    volumes:
+      # Make config file and output directories are accessible outside of container
+      - "./config:/nodeapp/config"
+      - "./out:/nodeapp/out"
+    environment:
+      - "NODE_ENV=production"
+    logging:
+      driver: json-file
