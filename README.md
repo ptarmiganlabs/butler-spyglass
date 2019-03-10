@@ -5,20 +5,37 @@ The tool will extract metadata for all applications in a Qlik Sense environment.
 
 ## Why extract app metadata
 
+### Data lineage
+
+When using Sense in enterprise environments, there is often a need to understand both what apps use a certain data source, and what data sources are used by a specific app.
+
+* When de-commissioning an old system that feed several Sense apps with data, it is important to know which these apps are. Butler Spyglass provide this information in the form of data lineage information.
+
+* If a data source contains sensitive information, it is important to always have up-to-date information on what apps use the data source in question.
+
+* Reviewing and auditing apps is greatly simplified if there is clear information on what data sources the app in question uses.
+
+### Load scripts
+
+By storing all app load scripts as individual disk files, it is possible to snapshot these daily and store them in one ZIP archive for each day. This becomes a historical record of what the scripts looked like in the past. Experience has proven this to be increadibly valuable if apps become corrupt or if there is a need to revert back to an earlier app version.
+
+Butler Spyglass solves all the scenarios above by extracting both data lineage information as well as full load scripts for all apps.
 
 ## Extracted data
+
 Extracted information for each app is
 
 1. Load script
 2. Data lineage, i.e. what data sources are used by the app in question.
 
-### Load script
+### Extracting load scripts
+
 Whether or not to extract app load scripts is controlled by the configuration parameter ```ButlerSpyglass.script.enableScriptExtract```. Set to true/false as needed.
 
 Each app's load script is extracted and stored in a file in a folder as defined by the ```ButlerSpyglass.script.scriptFolder``` configuration parameter.
 Each file will be use the app ID as file name.
 
-### Data lineage
+### Extracting data lineage
 
 Whether or not to extract data lineage info for apps is controlled by the configuration parameter ```ButlerSpyglass.lineage.enableLineageExtract```. Set to true/false as needed.
 
