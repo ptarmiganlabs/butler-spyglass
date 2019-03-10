@@ -1,8 +1,8 @@
 # docker-compose.yml
 version: '3.3'
 services:
-  butler-sos:
-    image: ptarmiganlabs/butler-spyglass:1.0.0alfa
+  butler-spyglass:
+    image: ptarmiganlabs/butler-spyglass:1.0.0
     container_name: butler-spyglass
     restart: always
     volumes:
