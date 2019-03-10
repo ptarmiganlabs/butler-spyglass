@@ -17,7 +17,8 @@ When using Sense in enterprise environments, there is often a need to understand
 
 ### Load scripts
 
-By storing all app load scripts as individual disk files, it is possible to snapshot these daily and store them in one ZIP archive for each day. This becomes a historical record of what the scripts looked like in the past. Experience has proven this to be increadibly valuable if apps become corrupt or if there is a need to revert back to an earlier app version.
+By storing all app load scripts as individual files on disk, it is possible to snapshot these daily and store them in one ZIP archive for each day. This becomes a historical record of what the scripts looked like in the past.  
+Traditional disk backups provide a similar capability to bring back old versions, experience has however proven it to be very valuable to have *quick and easy* access to old script versions, for example if apps have become corrupt or if there is a need to revert back to an earlier app version.
 
 Butler Spyglass solves all the scenarios above by extracting both data lineage information as well as full load scripts for all apps.
 
