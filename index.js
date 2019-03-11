@@ -152,6 +152,10 @@ var q = new Queue(async function (taskItem, cb) {
         app = await g.openDoc(taskItem.qDocId, '', '', '', true);
         logger.debug('openDoc success for appId: ' + taskItem.qDocId);
     } catch (err) {
+        // if (err.code == 1002) {
+        //     // Already open
+
+        // }
         logger.error('openDoc error: ' + JSON.stringify(err));
         cb();
         return;
