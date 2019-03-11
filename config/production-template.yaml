@@ -6,6 +6,7 @@ ButlerSpyglass:
   # Extract configuration
   extractFrequency: 60000    # milliseconds
   extractItemInterval: 100    # milliseconds
+  extractItemTimeout: 5000    # milliseconds
 
   lineage:
     enableLineageExtract: true

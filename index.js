@@ -210,7 +210,7 @@ var q = new Queue(async function (taskItem, cb) {
     cb();
 }, {
     concurrent: 1, // Process one task at a time
-    maxTimeout: 5000, // Max time allowed for each app extract, before timeout error is thrown
+    maxTimeout: config.get('ButlerSpyglass.extractItemTimeout'), // Max time allowed for each app extract, before timeout error is thrown
     afterProcessDelay: config.get('ButlerSpyglass.extractItemInterval') // Delay between each task
 });
 
