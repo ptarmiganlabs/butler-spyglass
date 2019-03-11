@@ -62,6 +62,7 @@ var configEngine = {
 
 // Set up enigma.js configuration
 const qixSchema = require('enigma.js/schemas/' + configEngine.engineVersion);
+// const SenseUtilities = require('enigma.js/sense-utilities');
 
 
 // Set up variable holding lineage data
@@ -117,10 +118,20 @@ var q = new Queue(async function (taskItem, cb) {
     var queueStats = q.getStats();
     logger.verbose(`Extracting metadata (#${processedApps}, overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
+    // Build a websocket URL
+    // let url = SenseUtilities.buildUrl({
+    //     host: configEngine.host,
+    //     appId: taskItem.qDocId,
+    //     secure: true
+    // })
+
+    // let session = enigma.create({qixSchema, url});
+
+
     // create a new session
-    const configEnigma = {
+    let configEnigma = {
         schema: qixSchema,
-        url: `wss://${configEngine.host}:${configEngine.port}`,
+        url: `wss://${configEngine.host}:${configEngine.port}/app/${taskItem.qDocId}`,
         createSocket: url => new WebSocket(url, {
             ca: [configEngine.ca],
             key: configEngine.key,
@@ -130,9 +141,11 @@ var q = new Queue(async function (taskItem, cb) {
             },
             rejectUnauthorized: false
         }),
+        protocol: { delta: false }
     };
 
-    const session = enigma.create(configEnigma);
+    let session = enigma.create(configEnigma);
+    let global;
 
     try {
         global = await session.open();
@@ -144,20 +157,18 @@ var q = new Queue(async function (taskItem, cb) {
     // We can now interact with the global object
     // Please refer to the Engine API documentation for available methods.
 
-    const g = global;
+    // let g = global;
 
     let app;
 
 
     try {
-        app = await g.openDoc(taskItem.qDocId, '', '', '', true);
+        app = await global.openDoc(taskItem.qDocId, '', '', '', true);
+        // app = await g.openDoc(taskItem.qDocId, '', '', '', true);
         logger.debug('openDoc success for appId: ' + taskItem.qDocId);
     } catch (err) {
-        // if (err.code == 1002) {
-        //     // Already open
-
-        // }
         logger.error('openDoc error: ' + JSON.stringify(err));
+        session.close();
         cb();
         return;
     };
@@ -171,7 +182,6 @@ var q = new Queue(async function (taskItem, cb) {
             lineage = await app.getLineage();
             logger.debug('getLineage success for appId: ' + taskItem.qDocId);
             logger.debug(JSON.stringify(lineage, null, 2));
-
 
             // Store current app's lineage to disk
             lineageCurrentAppWriter = createCsvWriter({
@@ -223,6 +233,7 @@ var q = new Queue(async function (taskItem, cb) {
 
         } catch (err) {
             logger.error('getLineage error: ' + JSON.stringify(err));
+            session.close();
             cb();
             return;
         };
@@ -249,12 +260,17 @@ var q = new Queue(async function (taskItem, cb) {
                 logger.verbose(`Done writing script for app ID ${taskItem.qDocId} to disk`);
             } catch (ex) {
                 logger.error(`Error when writing script for app ID ${taskItem.qDocId} to disk: ${ex}`);
+                session.close();
+                cb();
+                return;
             }
 
 
 
         } catch (err) {
+        session.close();
             logger.error('getScript error: ' + JSON.stringify(err));
+            session.close();
             cb();
             return;
         }
@@ -268,7 +284,7 @@ var q = new Queue(async function (taskItem, cb) {
 
     cb();
 }, {
-    concurrent: 1, // Process one task at a time
+    concurrent: config.get('ButlerSpyglass.concurrentTasks'), // Number of tasks to process in parallel
     maxTimeout: config.get('ButlerSpyglass.extractItemTimeout'), // Max time allowed for each app extract, before timeout error is thrown
     afterProcessDelay: config.get('ButlerSpyglass.extractItemInterval') // Delay between each task
 });
@@ -294,33 +310,35 @@ q.on('task_failed', function (taskId, errorMessage) {
 // I.e. when all data in an extraction run is available and can be written to disk.
 q.on('drain', () => {
 
-    if (config.get('ButlerSpyglass.lineage.enableLineageExtract') == true) {
-        // Save lineage info to disk file
-        lineageFileWriter
-            .writeRecords(lineageExtracted)
-            .then(() => {
-                logger.info(`Done writing ${lineageExtracted.length} lineage records to disk file`);
-            })
-            .catch((error) => {
-                logger.error('Failed to write lineage info to disk (make sure the output directory exists!): ', error);
-                process.exit(1);
-            });
-    }
+    // if (config.get('ButlerSpyglass.lineage.enableLineageExtract') == true) {
+    //     // Save lineage info to disk file
+    //     lineageFileWriter
+    //         .writeRecords(lineageExtracted)
+    //         .then(() => {
+    //             logger.info(`Done writing ${lineageExtracted.length} lineage records to disk file`);
+    //         })
+    //         .catch((error) => {
+    //             logger.error('Failed to write lineage info to disk (make sure the output directory exists!): ', error);
+    //             process.exit(1);
+    //         });
+    // }
 
-    if (config.get('ButlerSpyglass.script.enableScriptExtract') == true) {
-        // Save scripts to disk files (one file per app). Sync writing to keep things simple.
-        try {
-            scriptExtracted.forEach(element => {
-                fs.writeFileSync(
-                    path.resolve(path.normalize(config.get('ButlerSpyglass.script.scriptFolder') + '/' + element.appId + '.qvs')),
-                    element.script
-                );
-            });
-            logger.info(`Done writing ${scriptExtracted.length} script files to disk`);
-        } catch (ex) {
-            logger.error(`Error when writing scripts to disk (app id=${element.appId}): ${ex}`);
-        }
-    }
+    // if (config.get('ButlerSpyglass.script.enableScriptExtract') == true) {
+    //     // Save scripts to disk files (one file per app). Sync writing to keep things simple.
+    //     try {
+    //         scriptExtracted.forEach(element => {
+    //             fs.writeFileSync(
+    //                 path.resolve(path.normalize(config.get('ButlerSpyglass.script.scriptFolder') + '/' + element.appId + '.qvs')),
+    //                 element.script
+    //             );
+    //         });
+    //         logger.info(`Done writing ${scriptExtracted.length} script files to disk`);
+    //     } catch (ex) {
+    //         logger.error(`Error when writing scripts to disk (app id=${element.appId}): ${ex}`);
+    //     }
+    // }
+
+    logger.info(`Done writing lineage data and script files to disk`);
 
     // Schedule next extraction run after configured time period
     setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
