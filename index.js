@@ -162,12 +162,35 @@ var q = new Queue(async function (taskItem, cb) {
         return;
     };
 
+
     if (config.get('ButlerSpyglass.lineage.enableLineageExtract') == true) {
 
         try {
+            let lineageCurrentApp = [];
+
             lineage = await app.getLineage();
             logger.debug('getLineage success for appId: ' + taskItem.qDocId);
             logger.debug(JSON.stringify(lineage, null, 2));
+
+
+            // Store current app's lineage to disk
+            lineageCurrentAppWriter = createCsvWriter({
+                path: path.resolve(path.normalize(config.get('ButlerSpyglass.lineage.lineageFolder') + '/' + taskItem.qDocId + '.csv')),
+                header: [{
+                        id: 'appId',
+                        title: 'AppId'
+                    },
+                    {
+                        id: 'discriminator',
+                        title: 'Discriminator'
+                    },
+                    {
+                        id: 'statement',
+                        title: 'Statement'
+                    }
+                ],
+                append: false
+            });
 
             // Store lineage in array for later writing to disk
             lineageExtracted.push(lineage);
@@ -178,7 +201,25 @@ var q = new Queue(async function (taskItem, cb) {
                     discriminator: element.qDiscriminator,
                     statement: element.qStatement
                 })
+
+                // Push lineage for current app into its own array, for immediate storage on disk
+                lineageCurrentApp.push({
+                    appId: taskItem.qDocId,
+                    discriminator: element.qDiscriminator,
+                    statement: element.qStatement
+                })
             });
+
+            // Save lineage info to disk file
+            lineageCurrentAppWriter
+                .writeRecords(lineageCurrentApp)
+                .then(() => {
+                    logger.info(`Done writing ${lineageCurrentApp.length} lineage records for app ID ${taskItem.qDocId} to disk file`);
+                })
+                .catch((error) => {
+                    logger.error(`Failed to write lineage info to disk for app ID ${taskItem.qDocId} (make sure the output directory exists!): ${error}`);
+                    process.exit(1);
+                });
 
         } catch (err) {
             logger.error('getLineage error: ' + JSON.stringify(err));
@@ -267,6 +308,9 @@ q.on('drain', () => {
             logger.error(`Error when writing scripts to disk (app id=${element.appId}): ${ex}`);
         }
     }
+
+    // Schedule next extraction run after configured time period
+    setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
 });
 
 
@@ -326,7 +370,7 @@ var scheduledExtract = function () {
                         // progress.complete - # completed so far
                         // progress.total - # for completion
                         // progress.message - status message
-                      })
+                    })
 
                 })
 
@@ -343,8 +387,6 @@ var scheduledExtract = function () {
         });
 
 
-    // Start next extract after configured time period
-    setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
 };
 
 // Kick off first extract. Following extracts will be triggered from within the scheduledExtract() function
