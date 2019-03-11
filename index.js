@@ -214,7 +214,7 @@ var q = new Queue(async function (taskItem, cb) {
             lineageCurrentAppWriter
                 .writeRecords(lineageCurrentApp)
                 .then(() => {
-                    logger.info(`Done writing ${lineageCurrentApp.length} lineage records for app ID ${taskItem.qDocId} to disk file`);
+                    logger.verbose(`Done writing ${lineageCurrentApp.length} lineage records for app ID ${taskItem.qDocId} to disk file`);
                 })
                 .catch((error) => {
                     logger.error(`Failed to write lineage info to disk for app ID ${taskItem.qDocId} (make sure the output directory exists!): ${error}`);
@@ -234,11 +234,24 @@ var q = new Queue(async function (taskItem, cb) {
             logger.debug('getScript success for appId: ' + taskItem.qDocId);
             logger.silly(script);
 
-            // Store script in array for later writing to disk
-            scriptExtracted.push({
-                appId: taskItem.qDocId,
-                script: script
-            });
+            // // Store script in array for later writing to disk
+            // scriptExtracted.push({
+            //     appId: taskItem.qDocId,
+            //     script: script
+            // });
+
+            // Save current app's script to disk file. Sync writing to keep things simple.
+            try {
+                fs.writeFileSync(
+                    path.resolve(path.normalize(config.get('ButlerSpyglass.script.scriptFolder') + '/' + taskItem.qDocId + '.qvs')),
+                    script
+                );
+                logger.verbose(`Done writing script for app ID ${taskItem.qDocId} to disk`);
+            } catch (ex) {
+                logger.error(`Error when writing script for app ID ${taskItem.qDocId} to disk: ${ex}`);
+            }
+
+
 
         } catch (err) {
             logger.error('getScript error: ' + JSON.stringify(err));
