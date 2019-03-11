@@ -77,6 +77,7 @@ logger.info(`--------------------------------------`);
 logger.info(`Starting ${appName}`);
 logger.info(`App version is: ${appVersion}`);
 logger.info(`Log level is: ${logTransports.console.level}`);
+logger.info(`Extracting metadata from server: ${config.get('ButlerSpyglass.configEngine.server')}`);
 logger.info(`--------------------------------------`);
 
 // Log info about what Qlik Sense certificates are being used
