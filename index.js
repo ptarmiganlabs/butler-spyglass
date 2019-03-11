@@ -70,6 +70,8 @@ var lineageExtracted = [];
 // Set up variable holding scripts
 var scriptExtracted = [];
 
+// Keep track of how many apps have been processed in current extraction run
+var processedApps = 0;
 
 logger.info(`--------------------------------------`);
 logger.info(`Starting ${appName}`);
@@ -107,10 +109,12 @@ var q = new Queue(async function (taskItem, cb) {
         append: false
     });
 
+    // Increase counter of # processed apps in this extraction run
+    processedApps++;
 
     // Get queue stats
     var queueStats = q.getStats();
-    logger.verbose(`Extracting metadata from app (overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
+    logger.verbose(`Extracting metadata (#${processedApps}, overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
     // create a new session
     const configEnigma = {
@@ -301,6 +305,8 @@ var scheduledExtract = function () {
                     logger.silly(`Apps on this Engine that the configured user can open: ${JSON.stringify(list, null, 2)}`);
                     logger.info(`Number of apps on server: ${list.length}`);
 
+                    // Reset variable keeping track of # processed apps
+                    processedApps = 0;
 
                     // Send tasks to queue
                     list.forEach(element => {
