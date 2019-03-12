@@ -314,7 +314,7 @@ var scheduledExtract = function () {
                     // Send tasks to queue
                     list.forEach(element => {
                         q.push(element);
-                    });
+                    })
 
                     q.on('progress', function (progress) {
                         // logger.verbose(`========== Task progress: ${taskId}, ${completed}/${total} done`);
