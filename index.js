@@ -148,7 +148,7 @@ var q = new Queue(async function (taskItem, cb) {
         session.close();
         cb();
         return;
-    };
+    }
 
 
     if (config.get('ButlerSpyglass.lineage.enableLineageExtract') == true) {
@@ -185,7 +185,7 @@ var q = new Queue(async function (taskItem, cb) {
                     appId: taskItem.qDocId,
                     discriminator: element.qDiscriminator,
                     statement: element.qStatement
-                })
+                });
             });
 
             // Save lineage info to disk file
@@ -204,12 +204,12 @@ var q = new Queue(async function (taskItem, cb) {
             session.close();
             cb();
             return;
-        };
+        }
     }
 
     if (config.get('ButlerSpyglass.script.enableScriptExtract') == true) {
         try {
-            script = await app.getScript()
+            script = await app.getScript();
             logger.debug('getScript success for appId: ' + taskItem.qDocId);
             logger.silly(script);
 
@@ -258,7 +258,7 @@ q.on('task_finish', function (taskId, result) {
 q.on('task_failed', function (taskId, errorMessage) {
     // Handle error
     logger.error(`Task error: ${taskId} with error ${errorMessage}`);
-})
+});
 
 // q.on('task_progress', function (taskId, completed, total) {
 //     // Handle task progress
@@ -313,7 +313,7 @@ var scheduledExtract = function () {
 
                     // Send tasks to queue
                     list.forEach(element => {
-                        q.push(element)
+                        q.push(element);
                     });
 
                     q.on('progress', function (progress) {
@@ -324,7 +324,7 @@ var scheduledExtract = function () {
                         // progress.complete - # completed so far
                         // progress.total - # for completion
                         // progress.message - status message
-                    })
+                    });
 
                 })
 
@@ -334,7 +334,7 @@ var scheduledExtract = function () {
                     } catch (ex) {
                         logger.error(`Error when closing sessionAppList: ${ex}`);
                     }
-                })
+                });
         }).catch((error) => {
             logger.error('Failed to open session and/or retrieve the app list:', error);
             process.exit(1);
