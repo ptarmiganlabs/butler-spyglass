@@ -62,14 +62,6 @@ var configEngine = {
 
 // Set up enigma.js configuration
 const qixSchema = require('enigma.js/schemas/' + configEngine.engineVersion);
-// const SenseUtilities = require('enigma.js/sense-utilities');
-
-
-// Set up variable holding lineage data
-var lineageExtracted = [];
-
-// Set up variable holding scripts
-var scriptExtracted = [];
 
 // Keep track of how many apps have been processed in current extraction run
 var processedApps = 0;
@@ -118,17 +110,7 @@ var q = new Queue(async function (taskItem, cb) {
     var queueStats = q.getStats();
     logger.verbose(`Extracting metadata (#${processedApps}, overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
-    // Build a websocket URL
-    // let url = SenseUtilities.buildUrl({
-    //     host: configEngine.host,
-    //     appId: taskItem.qDocId,
-    //     secure: true
-    // })
-
-    // let session = enigma.create({qixSchema, url});
-
-
-    // create a new session
+    // Create a new session
     let configEnigma = {
         schema: qixSchema,
         url: `wss://${configEngine.host}:${configEngine.port}/app/${taskItem.qDocId}`,
@@ -156,15 +138,10 @@ var q = new Queue(async function (taskItem, cb) {
 
     // We can now interact with the global object
     // Please refer to the Engine API documentation for available methods.
-
-    // let g = global;
-
     let app;
-
 
     try {
         app = await global.openDoc(taskItem.qDocId, '', '', '', true);
-        // app = await g.openDoc(taskItem.qDocId, '', '', '', true);
         logger.debug('openDoc success for appId: ' + taskItem.qDocId);
     } catch (err) {
         logger.error('openDoc error: ' + JSON.stringify(err));
@@ -183,7 +160,7 @@ var q = new Queue(async function (taskItem, cb) {
             logger.debug('getLineage success for appId: ' + taskItem.qDocId);
             logger.debug(JSON.stringify(lineage, null, 2));
 
-            // Store current app's lineage to disk
+            // Create CSV write for storing current app's lineage to disk
             lineageCurrentAppWriter = createCsvWriter({
                 path: path.resolve(path.normalize(config.get('ButlerSpyglass.lineage.lineageFolder') + '/' + taskItem.qDocId + '.csv')),
                 header: [{
@@ -202,16 +179,7 @@ var q = new Queue(async function (taskItem, cb) {
                 append: false
             });
 
-            // Store lineage in array for later writing to disk
-            lineageExtracted.push(lineage);
-
             lineage.forEach(element => {
-                lineageExtracted.push({
-                    appId: taskItem.qDocId,
-                    discriminator: element.qDiscriminator,
-                    statement: element.qStatement
-                })
-
                 // Push lineage for current app into its own array, for immediate storage on disk
                 lineageCurrentApp.push({
                     appId: taskItem.qDocId,
@@ -245,12 +213,6 @@ var q = new Queue(async function (taskItem, cb) {
             logger.debug('getScript success for appId: ' + taskItem.qDocId);
             logger.silly(script);
 
-            // // Store script in array for later writing to disk
-            // scriptExtracted.push({
-            //     appId: taskItem.qDocId,
-            //     script: script
-            // });
-
             // Save current app's script to disk file. Sync writing to keep things simple.
             try {
                 fs.writeFileSync(
@@ -264,8 +226,6 @@ var q = new Queue(async function (taskItem, cb) {
                 cb();
                 return;
             }
-
-
 
         } catch (err) {
         session.close();
@@ -290,7 +250,6 @@ var q = new Queue(async function (taskItem, cb) {
 });
 
 
-
 q.on('task_finish', function (taskId, result) {
     // Handle finished result
     logger.debug(`Task finished: ${taskId} with result ${result}`);
@@ -309,35 +268,6 @@ q.on('task_failed', function (taskId, errorMessage) {
 // Fires when queue is empty and all tasks have finished. 
 // I.e. when all data in an extraction run is available and can be written to disk.
 q.on('drain', () => {
-
-    // if (config.get('ButlerSpyglass.lineage.enableLineageExtract') == true) {
-    //     // Save lineage info to disk file
-    //     lineageFileWriter
-    //         .writeRecords(lineageExtracted)
-    //         .then(() => {
-    //             logger.info(`Done writing ${lineageExtracted.length} lineage records to disk file`);
-    //         })
-    //         .catch((error) => {
-    //             logger.error('Failed to write lineage info to disk (make sure the output directory exists!): ', error);
-    //             process.exit(1);
-    //         });
-    // }
-
-    // if (config.get('ButlerSpyglass.script.enableScriptExtract') == true) {
-    //     // Save scripts to disk files (one file per app). Sync writing to keep things simple.
-    //     try {
-    //         scriptExtracted.forEach(element => {
-    //             fs.writeFileSync(
-    //                 path.resolve(path.normalize(config.get('ButlerSpyglass.script.scriptFolder') + '/' + element.appId + '.qvs')),
-    //                 element.script
-    //             );
-    //         });
-    //         logger.info(`Done writing ${scriptExtracted.length} script files to disk`);
-    //     } catch (ex) {
-    //         logger.error(`Error when writing scripts to disk (app id=${element.appId}): ${ex}`);
-    //     }
-    // }
-
     logger.info(`Done writing lineage data and script files to disk`);
 
     // Schedule next extraction run after configured time period
@@ -350,13 +280,6 @@ var scheduledExtract = function () {
     // Write separator to separate this run from the previous one
     logger.info(`--------------------------------------`);
     logger.info(`Script extraction run started`);
-
-
-    lineageExtracted = [];
-
-    // Set up variable holding scripts
-    scriptExtracted = [];
-
 
     // create a new session
     const configEnigma = {
