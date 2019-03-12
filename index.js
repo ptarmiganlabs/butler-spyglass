@@ -340,7 +340,6 @@ var scheduledExtract = function () {
             process.exit(1);
         });
 
-
 };
 
 // Kick off first extract. Following extracts will be triggered from within the scheduledExtract() function
