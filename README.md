@@ -22,6 +22,10 @@ Traditional disk backups provide a similar capability to bring back old versions
 
 Butler Spyglass solves all the scenarios above by extracting both data lineage information as well as full load scripts for all apps.
 
+## What's new
+
+The [change log](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/changelog.md)  contains the most complete list of changes.
+
 ## Extracted data
 
 Extracted information for each app is
@@ -45,6 +49,39 @@ Data lineage information is stored in a single CSV (```lineage.csv```) file in a
 ## Config file
 
 Make a copy of ```./config/production-template.yaml```, call the new file production.yaml. Edit as needed to match your Qlik Sense Enterprise environment.
+
+The parameters in the config file are described below. 
+All parameters must be defined in the config file - run time errors will occur otherwise.
+
+| Parameter | Description |
+| --------- | ----------- |
+| **General** |  |
+| logLevel | The level of details in the logs. Possible values are silly, debug, verbose, info, warn, error (in order of decreasing level of detail). Milliseconds |
+| extractFrequency | Time between extraction runs. 60000 means that the next extraction run will start 60 seconds after the previous one ends. Milliseconds |
+| extractItemInterval | Time between two sets of apps are extracted. The number of apps in a set is defined by concurrentTasks (below). For example, if set to 500 there will be a 0.5 sec delay between sets of apps are sent to the Qlik Sense engine API. Milliseconds |
+| extractItemTimeout | Timeout for the call to the engine API. For example, if set to 5000 and no response has been received from the engine API within 5 seconds, an error will be thrown. Milliseconds.   |
+| concurrentTasks | Number of apps that will be sent in parallel to the engine API. Use with caution! You can easily affect performance of a Sense environment by setting this parameter too high. Start setting it low, then increase it while at the same time monitoring the realtime performance (mainly CPU) of the target server, to ensure it is not too heavily loaded by the data extraction tasks. |
+|  |  |
+| **Lineage specific** |  |
+| enableLineageExtract | Control whether to extract lineage info or not. true/false |
+| lineageFolder | Folder where lineage files should be stored. Files are stored in a subfolder ```lineage``` |
+|  |  |
+| **Script specific** | Control whether to extract lineage info or not. true/false |
+| enableScriptExtract: true |  |
+| scriptFolder | Folder where script files should be stored. Files are stored in a subfolder ```script```  |
+|  |  |
+| **Parameters for connecting to Qlik Sense engine API** |  |
+| engineVersion | Version of the Qlik Sense engine running on the target server. Sense February 2019 has version number 12.170.2 |
+| server | Fully qualified domain name (=FQDN) of Qlik Sense Enterprise server from which data should be retrieved. |
+| serverPort | Should be 4747, unless configured otherwise in the QMC. |
+| isSecure | Set to true if https is used to communicate with the engine API. |
+| X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. ```UserDirectory=Internal;UserId=sa_repository``` is a system account that will give access to all apps |
+| ca | Root certificate, as exported from the QMC |
+| cert | Client certificate, as exported from the QMC |
+| key | Client certificate key, as exported from the QMC |
+| rejectUnauthorized | If set to true, strict checking will be done with respect to ssl certificates etc when connecting to the engine API. |
+
+
 
 ## Running Butler Spyglass
 
