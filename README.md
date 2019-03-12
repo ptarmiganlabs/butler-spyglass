@@ -1,4 +1,4 @@
-# butler-spyglass
+# Butler Spyglass
 
 Butler Spyglass is a tool for extracting metadata from Qlik Sense applications.
 The tool will extract metadata for all applications in a Qlik Sense environment.
