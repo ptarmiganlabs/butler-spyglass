@@ -139,7 +139,7 @@ var q = new Queue(async function (taskItem, cb) {
             headers: {
                 'X-Qlik-User': config.get('ButlerSpyglass.configEngine.headers.X-Qlik-User')
             },
-            rejectUnauthorized: false
+            rejectUnauthorized: config.get('ButlerSpyglass.configEngine.rejectUnauthorized')
         }),
         protocol: { delta: false }
     };
