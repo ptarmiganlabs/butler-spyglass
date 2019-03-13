@@ -107,7 +107,7 @@ var q = new Queue(async function (taskItem, cb) {
 
     // Get queue stats
     var queueStats = q.getStats();
-    logger.verbose(`Extracting metadata (#${processedApps}, overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
+    logger.info(`Extracting metadata (#${processedApps}, overall success rate ${100*queueStats.successRate}%): ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
     // Create a new session
     let configEnigma = {
