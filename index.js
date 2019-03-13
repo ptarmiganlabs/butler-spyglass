@@ -181,12 +181,14 @@ var q = new Queue(async function (taskItem, cb) {
             });
 
             lineage.forEach(element => {
+                if (element.qStatement == undefined) element.qStatement = '';
+
                 // Push lineage for current app into its own array, for immediate storage on disk
                 // Only extract first 1000 characters of the discriminator and statement data, respectively.
                 lineageCurrentApp.push({
                     appId: taskItem.qDocId,
                     discriminator: element.qDiscriminator.substring(0, config.get('ButlerSpyglass.lineage.maxLengthDiscriminator')),
-                    statement: element.qStatement.substring(0, config.get('ButlerSpyglass.script.maxLengthStatement'))
+                    statement: element.qStatement.substring(0, config.get('ButlerSpyglass.lineage.maxLengthStatement'))
                 });
             });
 
