@@ -12,6 +12,8 @@ ButlerSpyglass:
   lineage:
     enableLineageExtract: true
     lineageFolder: ./out/lineage
+    maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in lineage disk file per app
+    maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in lineage disk file per app
 
   script:
     enableScriptExtract: true

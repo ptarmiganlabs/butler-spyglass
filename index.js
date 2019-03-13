@@ -84,7 +84,6 @@ logger.debug(`Engine CA cert: ${config.get('ButlerSpyglass.configEngine.ca')}`);
 var q = new Queue(async function (taskItem, cb) {
     logger.debug(`Dumping app: ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
-
     lineageFileWriter = createCsvWriter({
         path: path.resolve(path.normalize(config.get('ButlerSpyglass.lineage.lineageFolder') + '/lineage.csv')),
         header: [{
@@ -183,10 +182,11 @@ var q = new Queue(async function (taskItem, cb) {
 
             lineage.forEach(element => {
                 // Push lineage for current app into its own array, for immediate storage on disk
+                // Only extract first 1000 characters of the discriminator and statement data, respectively.
                 lineageCurrentApp.push({
                     appId: taskItem.qDocId,
-                    discriminator: element.qDiscriminator,
-                    statement: element.qStatement
+                    discriminator: element.qDiscriminator.substring(0, config.get('ButlerSpyglass.lineage.maxLengthDiscriminator')),
+                    statement: element.qStatement.substring(0, config.get('ButlerSpyglass.script.maxLengthStatement'))
                 });
             });
 
