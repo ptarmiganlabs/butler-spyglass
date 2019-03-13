@@ -346,3 +346,4 @@ var scheduledExtract = function () {
 
 // Kick off first extract. Following extracts will be triggered from within the scheduledExtract() function
 scheduledExtract();
+
