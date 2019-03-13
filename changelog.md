@@ -1,10 +1,14 @@
 # Change log
 
+## v1.2
+
+* Added configurable extract length (max number of characters) for lineage data.
+
 ## v1.1
 
-* **Data lineage is saved as one file per app.** Previously all data lineage was saved in a single app. 
+* **Data lineage is saved as one file per app.** Previously all data lineage was saved in a single app.
 * Both data lineage and scripts are now saved to disk right after they have been extracted. This reduces the impact of the tool failing half-way through all apps.
-* Much improved stability and error handling when app extracts time out or fail. 
+* Much improved stability and error handling when app extracts time out or fail.
 * Added configurable concurrency, i.e. how many app extracts should be done concurrently.
 * Added configurable timeout for app extraction.
 * Add configuration for controlling whether lineage data or scripts or both should be extracted from apps.

@@ -50,7 +50,7 @@ Data lineage information is stored in a single CSV (```lineage.csv```) file in a
 
 Make a copy of ```./config/production-template.yaml```, call the new file production.yaml. Edit as needed to match your Qlik Sense Enterprise environment.
 
-The parameters in the config file are described below. 
+The parameters in the config file are described below.
 All parameters must be defined in the config file - run time errors will occur otherwise.
 
 | Parameter | Description |
@@ -65,6 +65,8 @@ All parameters must be defined in the config file - run time errors will occur o
 | **Lineage specific** |  |
 | enableLineageExtract | Control whether to extract lineage info or not. true/false |
 | lineageFolder | Folder where lineage files should be stored. Files are stored in a subfolder ```lineage``` |
+| maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
+| maxLengthStatement | Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file |
 |  |  |
 | **Script specific** | Control whether to extract lineage info or not. true/false |
 | enableScriptExtract: true |  |
@@ -80,8 +82,6 @@ All parameters must be defined in the config file - run time errors will occur o
 | cert | Client certificate, as exported from the QMC |
 | key | Client certificate key, as exported from the QMC |
 | rejectUnauthorized | If set to true, strict checking will be done with respect to ssl certificates etc when connecting to the engine API. |
-
-
 
 ## Running Butler Spyglass
 
@@ -171,7 +171,7 @@ With log level set to VERBOSE set in the config file, output might look like thi
 
 ## Output files
 
-The data lineage information is saved to a single ```lineage.csv```file: 
+The data lineage information is saved to a single ```lineage.csv```file:
 
     AppId,Discriminator,Statement
     10793a99-ef94-46ad-ae33-6a9efd260ab3,DSN=AUTOGENERATE;,
@@ -184,7 +184,7 @@ The data lineage information is saved to a single ```lineage.csv```file:
     0b94c6f9-82ce-40f1-a38c-8d277b01498e,{STORE - [Lib://App metadata/app_dump/20190125_apps.qvd] (qvd)};,
     0b94c6f9-82ce-40f1-a38c-8d277b01498e,{STORE - [Lib://App metadata/app_dump/current_apps.qvd] (qvd)};,
     0b94c6f9-82ce-40f1-a38c-8d277b01498e,monitor_apps_REST_app;,"RestConnectorMasterTable:
-    SQL SELECT 
+    SQL SELECT
         ""id"" ,
         ""name"",
         ""__KEY_root""
