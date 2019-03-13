@@ -123,7 +123,9 @@ var q = new Queue(async function (taskItem, cb) {
             },
             rejectUnauthorized: config.get('ButlerSpyglass.configEngine.rejectUnauthorized')
         }),
-        protocol: { delta: false }
+        protocol: {
+            delta: false
+        }
     };
 
     let session = enigma.create(configEnigma);
@@ -132,7 +134,7 @@ var q = new Queue(async function (taskItem, cb) {
     try {
         global = await session.open();
     } catch (err) {
-        logger.error('enigmaOpen error: ' + JSON.stringify(err));
+        logger.error(`enigmaOpen error (app ID=${taskItem.qDocId}): ${JSON.stringify(err)}`);
         return;
     }
 
@@ -144,7 +146,7 @@ var q = new Queue(async function (taskItem, cb) {
         app = await global.openDoc(taskItem.qDocId, '', '', '', true);
         logger.debug('openDoc success for appId: ' + taskItem.qDocId);
     } catch (err) {
-        logger.error('openDoc error: ' + JSON.stringify(err));
+        logger.error(`openDoc error (app ID=${taskItem.qDocId}): ${JSON.stringify(err)}`);
         session.close();
         cb();
         return;
@@ -200,7 +202,7 @@ var q = new Queue(async function (taskItem, cb) {
                 });
 
         } catch (err) {
-            logger.error('getLineage error: ' + JSON.stringify(err));
+            logger.error(`getLineage error (app ID=${taskItem.qDocId}): ${JSON.stringify(err)}`);
             session.close();
             cb();
             return;
@@ -228,8 +230,8 @@ var q = new Queue(async function (taskItem, cb) {
             }
 
         } catch (err) {
-        session.close();
-            logger.error('getScript error: ' + JSON.stringify(err));
+            session.close();
+            logger.error(`getScript error (app ID=${taskItem.qDocId}): ${JSON.stringify(err)}`);
             session.close();
             cb();
             return;
@@ -239,7 +241,7 @@ var q = new Queue(async function (taskItem, cb) {
     try {
         session.close();
     } catch (ex) {
-        logger.error(`Error when closing session: ${ex}`);
+        logger.error(`Error when closing session (app ID=${taskItem.qDocId}): ${ex}`);
     }
 
     cb();
