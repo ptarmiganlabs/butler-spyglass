@@ -275,7 +275,13 @@ q.on('drain', () => {
     logger.info(`Done writing lineage data and script files to disk`);
 
     // Schedule next extraction run after configured time period
-    setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
+    // Only do this if enable in the config file though!
+    if (config.get('ButlerSpyglass.enableScheduledExecution')) {
+        logger.info(`Waiting ${config.get('ButlerSpyglass.extractFrequency')/1000} seconds until next extraction run`);
+        setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
+    } else {
+        process.exit(0);
+    }
 });
 
 
@@ -348,4 +354,3 @@ var scheduledExtract = function () {
 
 // Kick off first extract. Following extracts will be triggered from within the scheduledExtract() function
 scheduledExtract();
-

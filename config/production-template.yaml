@@ -8,6 +8,7 @@ ButlerSpyglass:
   extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
   extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
   concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
+  enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
 
   lineage:
     enableLineageExtract: true

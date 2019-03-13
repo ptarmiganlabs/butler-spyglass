@@ -3,6 +3,8 @@
 ## v1.2
 
 * Added configurable extract length (max number of characters) for lineage data.
+* Made info-level logging more relevant.
+* Add possibility to enable/disable scheduled extraction runs. Opens up for using external schedulers (e.g. cron).
 
 ## v1.1
 
