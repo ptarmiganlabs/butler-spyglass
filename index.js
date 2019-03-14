@@ -18,7 +18,7 @@ var appName = require('./package.json').name;
 
 
 // Set up logger with timestamps and colors
-const logTransports = []
+const logTransports = [];
 
 logTransports.push(
     new winston.transports.Console({
