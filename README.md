@@ -57,6 +57,8 @@ All parameters must be defined in the config file - run time errors will occur o
 | --------- | ----------- |
 | **General** |  |
 | logLevel | The level of details in the logs. Possible values are silly, debug, verbose, info, warn, error (in order of decreasing level of detail). Milliseconds |
+| fileLogging | true/false to enable/disable logging to disk file |
+| logDirectory | Subdirectory where log files are stored |
 | extractFrequency | Time between extraction runs. 60000 means that the next extraction run will start 60 seconds after the previous one ends. Milliseconds |
 | extractItemInterval | Time between two sets of apps are extracted. The number of apps in a set is defined by concurrentTasks (below). For example, if set to 500 there will be a 0.5 sec delay between sets of apps are sent to the Qlik Sense engine API. Milliseconds |
 | extractItemTimeout | Timeout for the call to the engine API. For example, if set to 5000 and no response has been received from the engine API within 5 seconds, an error will be thrown. Milliseconds.   |
@@ -84,15 +86,26 @@ All parameters must be defined in the config file - run time errors will occur o
 | key | Client certificate key, as exported from the QMC |
 | rejectUnauthorized | If set to true, strict checking will be done with respect to ssl certificates etc when connecting to the engine API. |
 
+## Logging
+
+Console logs are always enabled, with configurable logging level (in the YAML config file).  
+
+Logging to disk files can be turned on/off individually for each logging level.
+For example, if disk logging is turned on for verbose, that log file will includ log events of severity levels error, warn, info and verbose.
+
+The logs are rotated daily, or when they reach 10 megabyte in size. 
+Log files are kept for 30 days, after which the one(s) older than 30 days are deleted.
+When log files are rotated there is a message "Rotating log files..." written with info severity level to the logs. 
+
 ## Running Butler Spyglass
 
 Once the config file is in place there are several ways to run Butler Spyglass.
 
-## Run from command line
+### Run from command line
 
     node index.js
 
-## Run using Docker
+### Run using Docker
 
 Using Docker arguably the easiest way to deploy Butler Spyglass. A few things to keep in mind though:
 

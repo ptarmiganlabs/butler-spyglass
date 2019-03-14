@@ -12,6 +12,7 @@
     "js-yaml": "^3.12.2",
     "jshint": "^2.10.1",
     "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^3.8.0",
     "ws": "^6.2.0"
   },
   "devDependencies": {},

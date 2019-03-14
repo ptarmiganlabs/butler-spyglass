@@ -1,7 +1,9 @@
 ---
 ButlerSpyglass:
-  # Possible log levels are silly, debug, verbose, info, warn, error
-  logLevel: verbose
+  # Logging configuration
+  logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+  fileLogging: true       # true/false to enable/disable logging to disk file
+  logDirectory: logs      # Subdirectory where log files are stored
 
   # Extract configuration
   extractFrequency: 60000     # Time between extraction runs. Milliseconds

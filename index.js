@@ -1,10 +1,11 @@
 var config = require('config');
-var winston = require('winston');
 var fs = require('fs-extra');
 var Queue = require('better-queue');
 const enigma = require('enigma.js');
 const WebSocket = require('ws');
 const path = require('path');
+var winston = require('winston');
+require('winston-daily-rotate-file');
 
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
@@ -17,9 +18,11 @@ var appName = require('./package.json').name;
 
 
 // Set up logger with timestamps and colors
-const logTransports = {
-    console: new winston.transports.Console({
-        name: 'console_log',
+const logTransports = []
+
+logTransports.push(
+    new winston.transports.Console({
+        name: 'console',
         level: config.get('ButlerSpyglass.logLevel'),
         format: winston.format.combine(
             winston.format.timestamp(),
@@ -28,18 +31,130 @@ const logTransports = {
             winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
         )
     })
-};
+);
+
+
+if (config.get('ButlerSpyglass.fileLogging')) {
+    logTransports.push(
+        new(winston.transports.DailyRotateFile)({
+            // name: 'file',
+            // frequency: '3m',
+            // dirname: path.normalize(config.get('ButlerSpyglass.fileLogging.path') + '/warn'),
+            dirname: path.join(__dirname, config.get('ButlerSpyglass.logDirectory')),
+            filename: 'butler-spyglass.%DATE%.log',
+            level: config.get('ButlerSpyglass.logLevel'),
+            datePattern: 'YYYY-MM-DD',
+            // zippedArchive: false,
+            // maxSize: '10m',
+            maxFiles: '30d'
+        })
+    );    
+}
+
+
+
+// logTransports.push(
+//     new(winston.transports.DailyRotateFile)({
+//         name: 'fileLogWarn',
+//         dirname: path.normalize(config.get('ButlerSpyglass.fileLogging.path') + '/warn'),
+//         filename: 'warn-%DATE%.log',
+//         level: 'warn',
+//         datePattern: 'YYYY-MM-DD',
+//         zippedArchive: false,
+//         maxSize: '10m',
+//         maxFiles: '30d'
+//     })
+// );
+
+// logTransports.push(
+// new(winston.transports.DailyRotateFile)({
+//         name: 'fileLogInfo',
+//         // dirname: path.normalize(config.get('ButlerSpyglass.fileLogging.path') + '/info'),
+//         dirname: path.join(__dirname, 'log', 'log_file.log'),        
+//         filename: 'info-%DATE%.log',
+//         level: 'info',
+//         // datePattern: 'YYYY-MM-DD',
+//         datePattern: '.yyyy-MM-ddTHH',
+//         zippedArchive: false,
+//         maxSize: '10m',
+//         maxFiles: '30d'
+//     })
+// );
+
+// logTransports.push(
+//     new(winston.transports.DailyRotateFile)({
+//         name: 'fileLogVerbose',
+//         dirname: path.normalize(config.get('ButlerSpyglass.fileLogging.path') + '/verbose'),
+//         filename: 'verbose-%DATE%.log',
+//         level: 'verbose',
+//         datePattern: 'YYYY-MM-DD',
+//         zippedArchive: false,
+//         maxSize: '10m',
+//         maxFiles: '30d'
+//     })
+// );
+
+// logTransports.push(
+//     new(winston.transports.DailyRotateFile)({
+//         name: 'fileLogDebug',
+//         dirname: path.normalize(config.get('ButlerSpyglass.fileLogging.path') + '/debug'),
+//         filename: 'debug-%DATE%.log',
+//         level: 'debug',
+//         datePattern: 'YYYY-MM-DD',
+//         zippedArchive: false,
+//         maxSize: '10m',
+//         maxFiles: '30d'
+//     })
+// );
+
+
 
 
 const logger = winston.createLogger({
-    transports: [
-        logTransports.console
-    ],
+    transports: logTransports,
+    // transports: [
+    //     logTransports.console
+    // ],
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
     )
 });
+
+
+
+// Add notification when logs are rotated
+// logTransports.fileLogError.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating error log... (from ${oldFilename} to ${newFilename}`);
+// });
+// logTransports.fileLogWarn.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating warn log... (from ${oldFilename} to ${newFilename}`);
+// });
+// logTransports.fileLogInfo.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating info log... (from ${oldFilename} to ${newFilename}`);
+// });
+// logTransports.fileLogVerbose.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating verbose log... (from ${oldFilename} to ${newFilename}`);
+// });
+// logTransports.fileLogDebug.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating debug log... (from ${oldFilename} to ${newFilename}`);
+// });
+// logTransports.fileLogSilly.on('rotate', function (oldFilename, newFilename) {
+//     logger.info(`Rotating silly log... (from ${oldFilename} to ${newFilename}`);
+// });
+
+
+
+
+// Add logging file transports that are enabled in the config file
+// if (config.get('ButlerSpyglass.fileLogging.logLevelError')) logger.add(logTransports.fileLogError);
+// if (config.get('ButlerSpyglass.fileLogging.logLevelWarn')) logger.add(logTransports.fileLogWarn);
+// if (config.get('ButlerSpyglass.fileLogging.logLevelInfo')) logger.add(logTransports.fileLogInfo);
+// if (config.get('ButlerSpyglass.fileLogging.logLevelVerbose')) logger.add(logTransports.fileLogVerbose);
+// if (config.get('ButlerSpyglass.fileLogging.logLevelDebug')) logger.add(logTransports.fileLogDebug);
+// if (config.get('ButlerSpyglass.fileLogging.logLevelSilly')) logger.add(logTransports.fileLogSilly);
+
+
 
 
 // Helper function to read the contents of the certificate files:
@@ -69,7 +184,12 @@ var processedApps = 0;
 logger.info(`--------------------------------------`);
 logger.info(`Starting ${appName}`);
 logger.info(`App version is: ${appVersion}`);
-logger.info(`Log level is: ${logTransports.console.level}`);
+// logger.info(`Log level is: ${logTransports.Console.level}`);
+// logger.info(`Log level is: ${logger.transports.console.level}`);
+logger.info(`Log level is: ${logTransports.find(transport => {
+    return transport.name=='console';
+}).level} `);
+
 logger.info(`Extracting metadata from server: ${config.get('ButlerSpyglass.configEngine.server')}`);
 logger.info(`--------------------------------------`);
 
@@ -290,6 +410,11 @@ var scheduledExtract = function () {
     // Write separator to separate this run from the previous one
     logger.info(`--------------------------------------`);
     logger.info(`Script extraction run started`);
+
+    // Empty output folders
+    fs.emptyDirSync(path.resolve(path.normalize(config.get('ButlerSpyglass.lineage.lineageFolder') + '/')));
+    fs.emptyDirSync(path.resolve(path.normalize(config.get('ButlerSpyglass.script.scriptFolder') + '/')));
+
 
     // create a new session
     const configEnigma = {
