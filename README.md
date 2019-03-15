@@ -93,9 +93,8 @@ Console logs are always enabled, with configurable logging level (in the YAML co
 Logging to disk files can be turned on/off individually for each logging level.
 For example, if disk logging is turned on for verbose, that log file will includ log events of severity levels error, warn, info and verbose.
 
-The logs are rotated daily, or when they reach 10 megabyte in size. 
+The logs are rotated daily.
 Log files are kept for 30 days, after which the one(s) older than 30 days are deleted.
-When log files are rotated there is a message "Rotating log files..." written with info severity level to the logs. 
 
 ## Running Butler Spyglass
 

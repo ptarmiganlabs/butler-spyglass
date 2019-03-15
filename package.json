@@ -1,6 +1,6 @@
 {
   "name": "butler-spyglass",
-  "version": "1.2.0",
+  "version": "1.2.0beta2",
   "description": "Utility for extracting various metadata for all applications in Qlik Sense Enterprise environment",
   "main": "index.js",
   "dependencies": {
