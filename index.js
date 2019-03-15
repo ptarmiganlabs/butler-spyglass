@@ -144,7 +144,7 @@ var scheduledExtract = function () {
                             .on('failed', function (err) {
                                 logger.logger.error('Task FAILED =====' + err);
                                 // Task failed!
-                            });;
+                            });
                     });
 
                     q.on('progress', function (progress) {
