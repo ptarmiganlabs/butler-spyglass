@@ -1,5 +1,12 @@
 language: node_js
+
 node_js:
- - "node"
+  - node
+
 env:
- - NODE_ENV=production
+  - NODE_ENV=production
+notifications:
+  slack:
+    on_success: always
+    on_failure: always
+    secure: Ozq+JS+0lMd7O02Fq/l/b1tLIKO1vpZnqowxsUM6vUZO7tXWEi/1fEpLfYaosra9r+cqjqeiMKHOc8mSFaYXUlGw3RqrtkxeDaCEHeGVqhIbox7gbYpx88thyrzbgbrdpGeHiSq0b6T4iIPfMxpXTsvhlYUok7NDz9TRDwRwbFmT6RvzwB6LBD8ZuX+PM+4JqSF59VYKnGRIaLxIL3bfZBCy1RX5kSOFaojPJqPNT/RG+m8C/irhCUADnzRT3ztDQ+bSR4dzOb6G/5Fj3CPDrrJN9lP+4VIKfcgJLqsleMnFDA3L5t8eLAEa92yHAs6n+VgnB8piuek1DR1txk5U4jZHK43cdsOYIY/q2wzfeII234gSRlkzLVjLxSNhU9VhvmKE1gXkorXLsRWQyA1rkwgaz7YAGmxgtcHXqAvZR5H/x9uyTD6/MLB9RZPgkTq5qxxQv0GpqNb+E0URcGT2CISszGh38oPcIZfMKq9+fWNx2Z8HlxdEzxWM9rDp+5b4i1W2O/6l1MYzaFg1U32TivUE3s6yo1iX5qYxm2dFi3bkPIXd7qKt7929lHb/OLNZD7xOhCoEG1G7e1sIEZyT4Tee0gj0okd/CJjpvPOx1kViR0uqhx9uiHVARc/VsRJSrVHFMIixvJf3xGhp237WlabXlM+tuqkB37ssr3i9Fn8=
