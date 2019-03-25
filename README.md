@@ -50,7 +50,7 @@ Data lineage information is stored in a single CSV (```lineage.csv```) file in a
 
 ## Config file
 
-Make a copy of ```./config/production-template.yaml```, call the new file production.yaml. Edit as needed to match your Qlik Sense Enterprise environment.
+Make a copy of ```./config/production-template.yaml```, call the new file ```production.yaml```. Edit as needed to match your Qlik Sense Enterprise environment.
 
 The parameters in the config file are described below.
 All parameters must be defined in the config file - run time errors will occur otherwise.
@@ -92,11 +92,9 @@ All parameters must be defined in the config file - run time errors will occur o
 
 Console logs are always enabled, with configurable logging level (in the YAML config file).  
 
-Logging to disk files can be turned on/off individually for each logging level.
-For example, if disk logging is turned on for verbose, that log file will includ log events of severity levels error, warn, info and verbose.
+Logging to disk files can be turned on/off via the YAML config file.
 
-The logs are rotated daily.
-Log files are kept for 30 days, after which the one(s) older than 30 days are deleted.
+Log files on disk are rotated daily. They are kept for 30 days, after which the one(s) older than 30 days are deleted.
 
 ## Running Butler Spyglass
 
@@ -104,15 +102,20 @@ Once the config file is in place there are several ways to run Butler Spyglass.
 
 ### Run from command line
 
+Start the tool by running from the command line:
+
     node index.js
+
+You may want to consider using a process monitor such as [PM2](http://pm2.keymetrics.io/) to ensure that Butler Spyglass is always running.
 
 ### Run using Docker
 
-Using Docker arguably the easiest way to deploy Butler Spyglass. A few things to keep in mind though:
+Using Docker arguably the easiest, most scalable and in general "enterprise grade" way to deploy Butler Spyglass. A few things to keep in mind though:
 
 * The NODE_ENV variable in the ```docker-compose.yml``` file controls what config file will be used. If NODE_ENV is set to *production*, the file ```./config/production.yaml``` will be used.
-* The output directories defined in the ```./config/production.yaml``` file must match the volume mapping in the docker-compose.yml file. I.e. if the config file defines the output directories as ```./out/lineage``` ```./myoutdir/script```, the docker-compose file must map the containers /nodeapp/myoutdir to an existing directory on the Docker host:
-```./out:/nodeapp/out```.
+* The output directories defined in the ```./config/production.yaml``` file must match the volume mapping in the docker-compose.yml file. I.e. if the config file defines the output directories as ```./out/lineage``` and ```./out/script```, the docker-compose file must map the containers /nodeapp/out to an existing directory on the Docker host, for example
+
+    ```./out:/nodeapp/out```.
 
 Looking at the directory structure and the config files, they could look as follows:
 
@@ -134,28 +137,35 @@ Looking at the directory structure and the config files, they could look as foll
 
     ---
     ButlerSpyglass:
-    # Possible log levels are silly, debug, verbose, info, warn, error
-    logLevel: verbose
+      # Logging configuration
+      logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+      fileLogging: true       # true/false to enable/disable logging to disk file
+      logDirectory: logs      # Subdirectory where log files are stored
 
-    # Extract configuration
-    extractFrequency: 60000    # milliseconds
-    extractItemInterval: 100    # milliseconds
+      # Extract configuration
+      extractFrequency: 60000     # Time between extraction runs. Milliseconds
+      extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
+      extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
+      concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
+      enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
 
-    lineage:
+      lineage:
         enableLineageExtract: true
         lineageFolder: ./out/lineage
+        maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
+        maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
 
-    script:
+      script:
         enableScriptExtract: true
         scriptFolder: ./out/script
 
-    configEngine:
+      configEngine:
         engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019
         server: sense.ptarmiganlabs.net
         serverPort: 4747
         isSecure: true
         headers:
-        X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+          X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
         ca: /nodeapp/config/certificate/root.pem
         cert: /nodeapp/config/certificate/client.pem
         key: /nodeapp/config/certificate/client_key.pem
@@ -165,18 +175,18 @@ Looking at the directory structure and the config files, they could look as foll
 
     version: '3.3'
     services:
-    butler-spyglass:
-        image: ptarmiganlabs/butler-spyglass:1.0.0
+      butler-spyglass:
+        image: ptarmiganlabs/butler-spyglass:latest
         container_name: butler-spyglass
         restart: always
         volumes:
-        # Make config file and output directories are accessible outside of container
-        - "./config:/nodeapp/config"
-        - "./out:/nodeapp/out"
+          # Make config file and output directories are accessible outside of container
+          - "./config:/nodeapp/config"
+          - "./out:/nodeapp/out"
         environment:
-        - "NODE_ENV=production"
+          - "NODE_ENV=production"
         logging:
-        driver: json-file
+          driver: json-file
 
 ## Sample output
 
