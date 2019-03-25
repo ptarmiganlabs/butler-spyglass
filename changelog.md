@@ -2,8 +2,8 @@
 
 ## v1.2
 
-* Added configurable extract length (max number of characters) for lineage data.
-* Made info-level logging more relevant.
+* Added configurable extract length (max number of characters) for each row of lineage data.
+* Tweaked log messages, making info-level logging more relevant.
 * Add possibility to enable/disable scheduled extraction runs. Opens up for using external schedulers (e.g. cron).
 * Add configurable logging to disk. If turned on, the log entries shown on the console are also written to disk.
 

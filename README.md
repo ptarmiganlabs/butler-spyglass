@@ -65,13 +65,13 @@ All parameters must be defined in the config file - run time errors will occur o
 | extractItemInterval | Time between two sets of apps are extracted. The number of apps in a set is defined by concurrentTasks (below). For example, if set to 500 there will be a 0.5 sec delay between sets of apps are sent to the Qlik Sense engine API. Milliseconds |
 | extractItemTimeout | Timeout for the call to the engine API. For example, if set to 5000 and no response has been received from the engine API within 5 seconds, an error will be thrown. Milliseconds.   |
 | concurrentTasks | Number of apps that will be sent in parallel to the engine API. Use with caution! You can easily affect performance of a Sense environment by setting this parameter too high. Start setting it low, then increase it while at the same time monitoring the realtime performance (mainly CPU) of the target server, to ensure it is not too heavily loaded by the data extraction tasks. |
+| enableScheduledExecution | true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit |
 |  |  |
 | **Lineage specific** |  |
 | enableLineageExtract | Control whether to extract lineage info or not. true/false |
 | lineageFolder | Folder where lineage files should be stored. Files are stored in a subfolder ```lineage``` |
 | maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
 | maxLengthStatement | Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file |
-| enableScheduledExecution | true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit |
 |  |  |
 | **Script specific** | Control whether to extract lineage info or not. true/false |
 | enableScriptExtract: true |  |
