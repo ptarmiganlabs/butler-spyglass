@@ -196,7 +196,23 @@ With log level set to VERBOSE set in the config file, output might look like thi
 
 ## Output files
 
-The data lineage information is saved to a single ```lineage.csv```file:
+The **data lineage** information is saved to individual files - one for each app. The file name is ```<app id>.csv```:
+
+    ➜ ll out/lineage
+    total 3568
+    -rw-r--r--  1 goran  staff   3.2K Mar 15 07:56 0325381f-0a6f-4dda-a89b-0fc125e1eeee.csv
+    -rw-r--r--  1 goran  staff    31B Mar 15 07:56 03941343-21d9-4e43-98db-26c87e381b69.csv
+    -rw-r--r--  1 goran  staff   2.9K Mar 15 07:56 0581fa58-34f5-4f79-a4c2-85c4e2d6e367.csv
+    -rw-r--r--  1 goran  staff    31B Mar 15 07:56 05f21ae5-7877-4ce4-b65e-1160ac3deaea.csv
+    -rw-r--r--  1 goran  staff   1.3K Mar 15 07:56 084b62fb-69ab-49c0-8170-203170b81b9e.csv
+
+Each lineage file may contain zero or more rows, each representing a data source or destination that the app uses.
+Everything is included - even inline tables, resident loads, writing to QVDs etc.
+
+This richness can be a problem though. If an inline table contains a thousand rows, all those rows will be returned as part of the lineage data.
+That's where the ```maxLengthDiscriminator``` config option (in the config YAML file) comes in handy. It makes it possible to set a limit to how many characters should be included for each row of lineage data.
+The setting is global for all apps, and applies to all rows of lineage data extracted from Sense.
+
 
     AppId,Discriminator,Statement
     10793a99-ef94-46ad-ae33-6a9efd260ab3,DSN=AUTOGENERATE;,
@@ -217,7 +233,7 @@ The data lineage information is saved to a single ```lineage.csv```file:
     ,,
     62dc4e60-8ba6-48af-9eac-9a076fd35819,DSN=AUTOGENERATE;,
 
-Each app's load script is stored as its own file, with the app ID as the file name:
+Each app's **load script** is also stored as its own file, with the app ID as the file name:
 
     ➜ ll out/script
     total 2024
@@ -260,7 +276,13 @@ Each app's load script is stored as its own file, with the app ID as the file na
 
 ## Analysing the generated files
 
-There are currently no analysis apps included in the project.
-This should be fairly easy to create though. The data lineage CSV file can be loaded into a Sense app and from there be made available for analysis.
+There are currently no analysis apps included in this project.
+This should be fairly easy to create though. The data lineage CSV files can be loaded into a Sense app and from there be made available for analysis.
 
 The load script .qvs files could be zipped into a daily archive by means of a scheduled task, using the standard OS scheduler.
+
+Feel free to contribute with good analysis apps - pull requests are always welcome!
+
+## Security / Disclosure
+
+If you discover any important bug with Butler Spyglass that may pose a security problem, please disclose it confidentially to security@ptarmiganlabs.com first, so that it can be assessed and hopefully fixed prior to being exploited. Please do not raise GitHub issues for security-related doubts or problems.
