@@ -213,7 +213,6 @@ This richness can be a problem though. If an inline table contains a thousand ro
 That's where the ```maxLengthDiscriminator``` config option (in the config YAML file) comes in handy. It makes it possible to set a limit to how many characters should be included for each row of lineage data.
 The setting is global for all apps, and applies to all rows of lineage data extracted from Sense.
 
-
     AppId,Discriminator,Statement
     10793a99-ef94-46ad-ae33-6a9efd260ab3,DSN=AUTOGENERATE;,
     b7ef5bff-5a13-4d61-bae4-45b5fab722f9,RESIDENT RestConnectorMasterTable;,
