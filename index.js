@@ -57,7 +57,7 @@ var q = new Queue(async function (taskItem, cb) {
     let _self = this;
     const newLocal = extractApp.appExtractMetadata(_self, q, taskItem, cb);
 
-    cb();
+    // cb();
 }, {
     concurrent: config.get('ButlerSpyglass.concurrentTasks'), // Number of tasks to process in parallel
     maxTimeout: config.get('ButlerSpyglass.extractItemTimeout'), // Max time allowed for each app extract, before timeout error is thrown
@@ -73,7 +73,7 @@ q.on('task_finish', function (taskId, result) {
 
 q.on('task_failed', function (taskId, errorMessage, stats) {
     // Handle error
-    logger.logger.error(`Task failed: ${taskId} with error ${errorMessage}, stats=${stats}`);
+    logger.logger.error(`Task failed: ${taskId} with error ${errorMessage}, stats=${JSON.stringify(stats, null, 2)}`);
 });
 
 // q.on('task_progress', function (taskId, completed, total) {
@@ -92,6 +92,7 @@ q.on('drain', () => {
         logger.logger.info(`Waiting ${config.get('ButlerSpyglass.extractFrequency')/1000} seconds until next extraction run`);
         setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
     } else {
+        logger.logger.info(`All done - exiting.`);
         process.exit(0);
     }
 });

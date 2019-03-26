@@ -213,6 +213,7 @@ module.exports.appExtractMetadata = async function (worker, queue, appToExtract,
     try {
         session.close();
 
+        cb();
     } catch (err) {
         logger.logger.error(`Error when closing session (app ID=${appToExtract.qDocId}): ${err}`);
 
