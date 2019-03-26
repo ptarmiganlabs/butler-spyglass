@@ -1,5 +1,9 @@
 # Change log
 
+## v1.2.1
+
+* Fix bug that in some cases caused too many parallel requests to the Sense server. Now at most concurrentTasks extracts are done in parallel.
+
 ## v1.2
 
 * Added configurable extract length (max number of characters) for each row of lineage data.
