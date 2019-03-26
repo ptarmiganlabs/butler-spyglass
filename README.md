@@ -71,7 +71,7 @@ All parameters must be defined in the config file - run time errors will occur o
 | enableLineageExtract | Control whether to extract lineage info or not. true/false |
 | lineageFolder | Folder where lineage files should be stored. Files are stored in a subfolder ```lineage``` |
 | maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
-| maxLengthStatement | Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file |
+| maxLengthStatement | Max characters of statement field (e.g. SQL statement) to store in per-app lineage disk file |
 |  |  |
 | **Script specific** | Control whether to extract lineage info or not. true/false |
 | enableScriptExtract: true |  |
