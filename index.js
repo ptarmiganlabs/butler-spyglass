@@ -65,6 +65,12 @@ var q = new Queue(async function (taskItem, cb) {
     filo: true 
 });
 
+// var qRetry = new Queue(async function (taskItemRetry, cbRetry) {
+//     logger.logger.debug(`Retrying app ${taskItemRetry.qDocId} <<>> ${taskItemRetry.qTitle}`);
+
+//     let _selfRetry = this;
+//     const newLocalRetry = 
+// })
 
 q.on('task_finish', function (taskId, result) {
     // Handle finished result
