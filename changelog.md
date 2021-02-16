@@ -1,5 +1,15 @@
 # Change log
 
+## 1.3
+
+### New features
+
+### Fixes and patches
+
+1. Update dependencies to latest version. Stay sharp!
+
+### Changed behavior and/or breaking changes
+
 ## v1.2.1
 
 * Fix bug that in some cases caused too many parallel requests to the Sense server. Now at most concurrentTasks extracts are done in parallel.
