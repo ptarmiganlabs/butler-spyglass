@@ -5,15 +5,15 @@
   "main": "index.js",
   "dependencies": {
     "better-queue": "^3.8.10",
-    "config": "^3.0.1",
+    "config": "^3.3.6",
     "csv-writer": "^1.6.0",
-    "enigma.js": "^2.7.2",
-    "fs-extra": "^9.1.0",
-    "js-yaml": "^4.0.0",
-    "jshint": "^2.12.0",
+    "enigma.js": "^2.7.3",
+    "fs-extra": "^10.0.0",
+    "js-yaml": "^4.1.0",
+    "jshint": "^2.13.0",
     "winston": "^3.3.3",
-    "winston-daily-rotate-file": "^4.5.0",
-    "ws": "^7.4.3"
+    "winston-daily-rotate-file": "^4.5.5",
+    "ws": "^8.0.0"
   },
   "scripts": {
     "test": "node_modules/jshint/bin/jshint index.js"
