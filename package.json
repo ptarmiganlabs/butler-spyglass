@@ -11,7 +11,7 @@
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "14.2.1",
     "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-import": "2.23.4",
+    "eslint-plugin-import": "^2.24.0",
     "eslint-plugin-prettier": "3.4.0",
     "fs-extra": "^10.0.0",
     "js-yaml": "^4.1.0",
@@ -21,8 +21,8 @@
   },
   "devDependencies": {
     "prettier": "2.3.2",
-    "snyk": "1.675.0"
-  },  
+    "snyk": "^1.677.0"
+  },
   "scripts": {
     "format": "npm run format:prettier",
     "format:prettier": "npx prettier --config .prettierrc.yaml \"./**/*.{ts,css,less,js}\" --write",
