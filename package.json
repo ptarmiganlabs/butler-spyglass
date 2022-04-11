@@ -10,7 +10,7 @@
     "enigma.js": "^2.7.2",
     "fs-extra": "^10.0.0",
     "js-yaml": "^4.0.0",
-    "jshint": "^2.12.0",
+    "jshint": "^2.13.4",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.0",
     "ws": "^7.4.3"
