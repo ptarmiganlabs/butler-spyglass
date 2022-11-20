@@ -1,5 +1,5 @@
 # Use Node 8 LTS
-FROM node:18
+FROM node:19
 
 # Create app dir inside container
 WORKDIR /nodeapp
