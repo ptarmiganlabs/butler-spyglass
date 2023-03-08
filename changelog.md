@@ -10,6 +10,9 @@
 
 ### Changed behavior and/or breaking changes
 
+1. Changed to using [drone.io](https://www.drone.io/) for building Docker images.
+2. Build both x86 and Arm Docker images.
+
 ## v1.2.1
 
 * Fix bug that in some cases caused too many parallel requests to the Sense server. Now at most concurrentTasks extracts are done in parallel.
