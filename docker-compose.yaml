@@ -2,7 +2,7 @@
 version: '3.3'
 services:
   butler-spyglass:
-    image: ptarmiganlabs/butler-spyglass:v1.2.1
+    image: ptarmiganlabs/butler-spyglass:latest
     container_name: butler-spyglass
     restart: always
     volumes:
