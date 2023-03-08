@@ -1,0 +1,1527 @@
+(************************************************************************************)
+(* QlikView Script Syntax                                                           *)
+(************************************************************************************)
+(* File Layout:                                                                     *)
+(* Part 1: Miscelanious Helper Rules                                                *)
+(* Part 2: Expression Helper Rules                                                  *)
+(* Part 3: Statement Rules And Statement Specific Helper Rules                      *)
+(* Part 4: Direct Discovery                                                         *)
+(* Part 5: Prefix Rules                                                             *)
+(* Part 6: Control Statement Rules                                                  *)
+(* Part 7: Derived Statement Rules                                                  *)
+(*                                                                                  *)
+(*                                                                                  *)
+(* Everything is in logical or Alphabetical order within each part                  *)
+(*                                                                                  *)
+(* In or statement, put the longest cases first so that the parsing dont stop       *)
+(* at the first but shortest match.                                                 *)
+(*                                                                                  *)
+(* BNF Syntax                                                                       *)
+(*    All words are rules                                                           *)
+(*    '   '  Literal strings enclosed in single quotes                              *)
+(*    ( | )  Parenthesis mark the start and end of an OR statement                  *)
+(*    [   ]  Optional                                                               *)
+(*    {   }  Zero or more repitions                                                 *)
+(*    <   >  All or nothing, the content is fully matched or not at all             *)
+(*           A function name must be followed by a '(' or its not a f-name          *)
+(*     X-Y   token match X but NOT Y                                                *)
+(*                                                                                  *)
+(*                                                                                  *)
+(*                                                                                  *)
+(*    ?Statement?      The Rule is a script statement                               *)
+(*    ?Control?        The Rule is a control statement                              *)
+(*    ?ControlMiddle=X? Control Line as part of X rule                              *)
+(*    ?ControlEnd=X?    Control Line marking end of X rule                          *)
+(*    ?func?           The rule is a function                                       *)
+(*    ?aggr?           The rule is an aggregation function                          *)
+(*    ?field?          The rule is a field name                                     *)
+(*    ?Name?                                                                        *)
+(*    ?RetType?                                                                     *)
+(*    ?deprecated?     The rule or syntax is deprecated and might be removed        *)
+(*                     in the future. Use new alternative instead                   *)
+(*    ?secret?         The content in the rule is secret and must not be put in     *)
+(*                     logfiles and progress dialogs                                *)
+(*    ?sensitive?      The content in the rule is sensitive                         *)
+(*    ?product?        ?product=sense? or ?product=qlikview?                        *)
+(*                     By default a rule is available to all products               *)
+(*                     Only applicable to rules (before definition ('=')            *)
+(*                                                                                  *)
+(*                                                                                  *)
+(* Some rules, like function names are added at runtime                             *)
+(*                                                                                  *)
+(*                                                                                  *)
+(*  TDOD TODO                                                                       *)
+(* GRAND is replaced with ALL a long time ago, but accepted for legacy              *)
+(* reasons. These are equivalent with the Set-expression {1} so a                   *)
+(* SET-expression cant be combined with ALL (or GRAND).                             *)
+(*                                                                                  *)
+(*                                                                                  *)
+(************************************************************************************)
+
+
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 1: Miscelanious Helper Rules                                          *)
+(******************************************************************************)
+(******************************************************************************)
+
+RawText = {SCANNER_TOKEN_MATCH_ANYTHING};
+SecretRawText ?secret? = {SCANNER_TOKEN_MATCH_ANYTHING};
+AnonymousRawText = {SCANNER_TOKEN_MATCH_ANYTHING};
+SensitiveRawText ?sensitive? = {SCANNER_TOKEN_MATCH_ANYTHING};
+
+AnyString = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+SensitiveAnyString ?sensitive?  = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+AnyStringOrAnySymbol = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD | SCANNER_TOKEN_MATCH_ANYTHING);
+AnyStringOrNumber = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD | LITERAL_NUMBER);
+TableName = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD | LITERAL_NUMBER);
+SecretTableName ?secret? = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD | LITERAL_NUMBER);
+FieldName = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+FieldNumber = LITERAL_NUMBER;
+    AliasFieldName = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+
+FieldNameOrStar = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD |  ?helpid=46080? '*' );
+
+AllFieldStar =  ?helpid=46081? '*';
+
+FileName ?secret? =  ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+
+CompositeFileName ?sensitive? = CompositeFileNamePart { CompositeFileNamePart };
+CompositeFileNamePart = ( 
+                 (* Realy need to use a nicer definition *)
+                 WHITESPACE | LITERAL_NUMBER | IDENTIFIER | LITERAL_STRING | LITERAL_FIELD |
+                 OPERATOR_PLUS | OPERATOR_MINUS | OPERATOR_MULTIPLICATION | OPERATOR_DIVISION |
+                 OPERATOR_STRING_CONCAT |
+                 OPERATOR_LESS | OPERATOR_LESS_EQUAL | OPERATOR_GREATER | OPERATOR_GREATER_EQUAL | OPERATOR_EQUAL | OPERATOR_NOT_EQUAL |
+                 OPERATOR_RIGHT_SHIFT | OPERATOR_LEFT_SHIFT | OPERATOR_COLON_COLON |
+                 SYNTAX_RIGHT_PAREN | SYNTAX_COMMA | SYNTAX_COLON | SYNTAX_EXCLAMATION | SYNTAX_TILDE | 
+                 OPERATOR_PLUS_EQUAL | OPERATOR_MINUS_EQUAL | OPERATOR_MULT_EQUAL | OPERATOR_EQUAL_EQUAL | OPERATOR_DIV_EQUAL
+                 );
+                 (* Everything but SYNTAX_SEMI_COLON  SYNTAX_LEFT_PAREN  COMMENT *)
+                 (* Eat all tokens until '(', used in many places in QV script *)
+
+    (**** A better way below for use later *) 
+   (* CompositeFileNamePart = SCANNER_TOKEN_MATCH_ANYTHING - CompositeFileNamePartException;*) 
+   (*     CompositeFileNamePartException = ( ';' | '('  ); *) 
+
+
+VariableName = ( IDENTIFIER - ControlWords | LITERAL_STRING - ControlWords | LITERAL_FIELD - ControlWords );
+    ControlWords = (  ?helpid=46082? 'Call' |  ?helpid=46083? 'Case' |  ?helpid=46084? 'Do' |  ?helpid=46085? 'Elseif' |  ?helpid=46086? 'For' |  ?helpid=46087? 'If' |  ?helpid=46088? 'Next' |  ?helpid=46089? 'Sub' |  ?helpid=46090? 'Switch' );
+
+
+SecretAnyString ?secret? = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD );
+
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 2: Expression Helper Rules                                            *)
+(******************************************************************************)
+(******************************************************************************)
+
+
+
+StringOperatorLike =  ?helpid=46091? 'like';
+
+LogicalOperatorNot =  ?helpid=46092? 'not';
+LogicalOperatorAnd =  ?helpid=46093? 'and';
+LogicalOperatorOr =  ?helpid=46094? 'or';
+LogicalOperatorXor =  ?helpid=46095? 'xor';
+
+RelationalOpertorFollows =  ?helpid=46096? 'follows';
+RelationalOpertorPrecedes =  ?helpid=46097? 'precedes';
+
+BitOperatorNot =  ?helpid=46098? 'bitnot';
+BitOperatorAnd =  ?helpid=46099? 'bitand';
+BitOperatorOr =   ?helpid=46100? 'bitor';
+BitOperatorXor =  ?helpid=46101? 'bitxor';
+
+
+ExpressionConstant = ( LITERAL_NUMBER | LITERAL_STRING );
+ExpressionFieldRef = ( LITERAL_FIELD | IDENTIFIER );
+ExpressionFieldRefFixFormat = < IDENTIFIER  ?helpid=46102? ':' > (IDENTIFIER|LITERAL_NUMBER) [( ?helpid=46103? 'T' |  ?helpid=46104? 'N' |  ?helpid=46105? 'R' |  ?helpid=46106? 'I' |  ?helpid=46107? 'U' |  ?helpid=46108? 'B' )];
+
+ExpressionUnaryOperator = ( OPERATOR_PLUS | OPERATOR_MINUS | LogicalOperatorNot | BitOperatorNot );
+ExpressionBinaryOperator = (OPERATOR_PLUS | OPERATOR_MINUS | OPERATOR_MULTIPLICATION | OPERATOR_DIVISION |
+                            OPERATOR_STRING_CONCAT | StringOperatorLike |
+                            LogicalOperatorAnd | LogicalOperatorOr | LogicalOperatorXor |
+                            OPERATOR_LESS | OPERATOR_LESS_EQUAL | OPERATOR_GREATER | OPERATOR_GREATER_EQUAL | OPERATOR_EQUAL | OPERATOR_NOT_EQUAL |
+                                RelationalOpertorFollows |  RelationalOpertorPrecedes |
+                            BitOperatorAnd | BitOperatorOr | BitOperatorXor | OPERATOR_RIGHT_SHIFT | OPERATOR_LEFT_SHIFT );
+
+
+UnaryExpression = (  BasicFunctionCall |
+                AggregationFunctionCall |
+                ModuleFunctionCall |
+                <ExpressionUnaryOperator Expression> |
+                ExpressionConstant |
+                ExpressionFieldRef |
+                ExpressionFieldRefFixFormat |
+                '(' Expression ')'
+                );
+
+
+Expression =  UnaryExpression {ExpressionBinaryOperator UnaryExpression};
+
+
+BasicUnaryExpression = (  BasicFunctionCall |
+                ModuleFunctionCall |
+                <ExpressionUnaryOperator BasicExpression> |
+                ExpressionConstant |
+                ExpressionFieldRef |
+                ExpressionFieldRefFixFormat |
+                '(' BasicExpression ')'
+                );
+
+
+(* Expression without aggregation functions *)
+BasicExpression =  BasicUnaryExpression {ExpressionBinaryOperator BasicUnaryExpression};
+
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 3: Statement Rules And Statement Specific Helper Rules                *)
+(******************************************************************************)
+(******************************************************************************)
+
+
+AliasStatement = {DefaultPrefix} ?Statement? ?helpid=46109? 'Alias' AliasStatementRename {',' AliasStatementRename};
+    AliasStatementRename = FieldName  ?helpid=46110? 'as' AliasFieldName;
+
+AutoNumberStatement = {DefaultPrefix} ?Statement?  ?helpid=46111? 'Autonumber' FieldNameOrStar {',' FieldNameOrStar} [ ?helpid=46112? 'Using' AnyString];
+
+BinaryStatement = {DefaultPrefix} ?Statement?  ?helpid=46113? 'Binary' RawText;
+
+CommentStatement = {DefaultPrefix} ?Statement?  ?helpid=46114? 'Comment' [( ?helpid=46115? 'Tables' |  ?helpid=46116? 'Table' |  ?helpid=46117? 'Fields' |  ?helpid=46118? 'Field' )] ( CommentUsing | CommentWith );
+    CommentUsing =  ?helpid=46119? 'Using' TableName;
+    CommentWith = TableName  ?helpid=46120? 'With' AnyString;
+
+
+(* Ancient CONNECT statement did not require 'TO'                *)
+(* But in that case we did not support access info.              *)
+(* That never worked with custom connects                        *)
+
+CustomConnectStatement = {DefaultPrefix} ( ?Statement? ?deprecated?  ?helpid=46121? 'CustomConnect' |  ?helpid=46122? 'CUSTOM'  ?Statement?  ?helpid=46123? 'Connect')   ?helpid=46124? 'To' CustomConnectString;
+    (* CustomConnectString = SCANNER_TOKEN_MATCH_ANYTHING { SCANNER_TOKEN_MATCH_ANYTHING }; *)
+    CustomConnectString = SecretAnyString;
+
+LibConnectStatement = {DefaultPrefix}  ?helpid=46125? 'LIB' ?Statement?  ?helpid=46126? 'Connect'  ?helpid=46127? 'To' LibConnectString;
+
+BdiConnectStatement = {DefaultPrefix}  ?helpid=46128? 'BDI' ?Statement?  ?helpid=46129? 'Connect'  ?helpid=46130? 'To' AnonymousRawText;
+
+BdiLiveStatement =  ?helpid=46131? 'IMPORT' ?Statement?  ?helpid=46132? 'LIVE'  AnonymousRawText;
+
+ConnectPrefix = (  ?helpid=46133? 'ODBC' |  ?helpid=46134? 'OLEDB' ); (* OLEDB is default if there is no ConnectPrefix *)
+Connect64Statement = {DefaultPrefix} [ConnectPrefix] ?Statement?  ?helpid=46135? 'Connect64'  ?helpid=46136? 'To' ConnectString [AccessInfo];
+Connect32Statement = {DefaultPrefix} [ConnectPrefix] ?Statement?  ?helpid=46137? 'Connect32'  ?helpid=46138? 'To' ConnectString [AccessInfo];
+ConnectStatement =   {DefaultPrefix} [ConnectPrefix] ?Statement?  ?helpid=46139? 'Connect'  ?helpid=46140? 'To' ConnectString [AccessInfo];
+    (*  ConnectString ?secret? = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD ); *)
+    (* ConnectString ?secret? = CompositeFileNamePart { CompositeFileNamePart }; *)
+    ConnectString = SecretAnyString;
+    LibConnectString = AnyString;
+
+
+    AccessInfo = '(' AccessItem { ',' AccessItem} ')';
+        AccessItem = (AccessItemAutoCommit | AccessItemCodePage | AccessItemMode | AccessItemPassword |
+                      AccessItemSSO | AccessItemUserID | AccessItemXPassword | AccessItemXUserID );
+            AccessItemUserID =  ?helpid=46141? 'UserID'  ?helpid=46142? 'is' SecretAnyString;
+            AccessItemXUserID =  ?helpid=46143? 'XUserID'  ?helpid=46144? 'is' SecretAnyString;
+            AccessItemPassword =  ?helpid=46145? 'Password'  ?helpid=46146? 'is' SecretAnyString;
+            AccessItemXPassword =  ?helpid=46147? 'XPassword'  ?helpid=46148? 'is' SecretAnyString;
+            AccessItemMode =  ?helpid=46149? 'mode'  ?helpid=46150? 'is'  ?helpid=46151? 'write';
+            AccessItemAutoCommit =  ?helpid=46152? 'AutoCommit' (  ?helpid=46153? '0' |  ?helpid=46154? 'off'); (* only AutoCommit was perviosly allowed, but ignored *)
+            AccessItemCodePage =  ?helpid=46155? 'CodePage'  ?helpid=46156? 'is' ( ?helpid=46157? 'off' |  ?helpid=46158? 'ansi' |  ?helpid=46159? 'unicode' |  ?helpid=46160? 'oem' | LITERAL_NUMBER);
+            AccessItemSSO =  ?helpid=46161? 'SSO';
+
+
+DirectoryStatement = {DefaultPrefix} ?Statement?  ?helpid=46162? 'Directory' RawText;
+
+DisConnectStatement = {DefaultPrefix} ?Statement?  ?helpid=46163? 'DisConnect';
+
+DropFieldStatement = {DefaultPrefix} ?Statement?  ?helpid=46164? 'Drop' ( ?helpid=46165? 'Field'| ?helpid=46166? 'Fields') FieldName {',' FieldName} [ ?helpid=46167? 'From' TableName {',' TableName} ];
+
+DropTableStatement = {DefaultPrefix} ?Statement?  ?helpid=46168? 'Drop' ( ?helpid=46169? 'Table'| ?helpid=46170? 'Tables') TableName {',' TableName};
+
+ExecuteStatement = {DefaultPrefix} ?Statement?  ?helpid=46171? 'Execute' AnonymousRawText;
+
+FlushLogStatement = {DefaultPrefix} ?Statement?   ?helpid=46172? 'FlushLog';
+
+ForceStatement = {DefaultPrefix} ?Statement?  ?helpid=46173? 'force' (  ?helpid=46174? 'capitalization' |  ?helpid=46175? 'case' (  ?helpid=46176? 'upper' |  ?helpid=46177? 'lower' |  ?helpid=46178? 'mixed' ) );
+
+InputFieldStatement ?product=qlikview? = {DefaultPrefix} ?Statement?  ?helpid=46179? 'InputField' FieldName {',' FieldName}; (* obsolete in sense *)
+
+LetStatement = {DefaultPrefix} ?Statement?  ?helpid=46180? 'Let' VariableName '=' [Expression];
+
+
+
+
+
+
+LoadStatement = {LoadPrefixOrLabel} ?Statement?  ?helpid=46181? 'Load' [ ?helpid=46182? 'Distinct'] FieldList [LoadSource];
+    FieldList = FieldListFieldOrStar {',' FieldListFieldOrStar };
+        FieldListFieldOrStar =  (  ?helpid=46183? '*' | Field );
+        Field = ( FieldRef | Expression ) [  ?helpid=46184? 'as' FieldRefAlias];
+            FieldRef = ( IDENTIFIER | LITERAL_FIELD );
+            FieldRefAlias = ( IDENTIFIER | LITERAL_FIELD | LITERAL_NUMBER | LITERAL_STRING );
+    LoadSource = ( LoadSourceCommon | LoadSourceResident | LoadSourceExtension | LoadFollowing );
+        LoadFollowing = [LoadClauses];
+        LoadSourceCommon = (LoadAutoGenerate | LoadFrom | LoadFromField | LoadInline ) [FileFormatSpec]  [LoadClauses];
+            LoadFrom =  ?helpid=46185? 'From' CompositeFileName;
+            LoadInline =  ?helpid=46186? 'Inline' InlineData;
+                InlineData = (LITERAL_STRING | LITERAL_FIELD);
+            LoadFromField =  ?helpid=46187? 'From_Field' '('TableName ',' FieldName ')';
+            LoadAutoGenerate =  ?helpid=46188? 'AutoGenerate' Expression;
+        LoadSourceResident = LoadResident [LoadClauses] [FileOrderBy];
+            LoadResident =  ?helpid=46189? 'Resident' ResidentTableLabel;
+                ResidentTableLabel = TableName;
+        LoadSourceExtension =  ?helpid=46190? 'Extension' ExtensionFunction '(' [ ExtensionParams ] ')';
+            (* Old code had bug and accepted only identififer. *)                     
+            ExtensionFunction = IDENTIFIER [ ?helpid=46191? '.' IDENTIFIER];  
+            ExtensionParams = ( ExtensionScript [ ',' ExtensionSourceTableSpec ] | ExtensionSourceTableSpec );
+            ExtensionScript = LITERAL_STRING;
+            ExtensionSourceTableSpec = TableName [  ?helpid=46192? '{' ExtensionFieldList  ?helpid=46193? '}' ];
+               ExtensionFieldList = ExtensionFieldOrStar {',' ExtensionFieldOrStar };
+                   ExtensionFieldOrStar = (  ?helpid=46194? '*' | ExtensionField );
+                       ExtensionField = (ExtensionFieldRef | ExtensionStringFieldRef | ExtensionMixedFieldRef) [  ?helpid=46195? 'as' FieldRefAlias];
+                           ExtensionFieldRef = FieldRef;
+                           ExtensionStringFieldRef =  ?helpid=46196? 'String' '(' FieldRef ')';
+                           ExtensionMixedFieldRef =  ?helpid=46197? 'Mixed' '(' FieldRef ')';
+
+    FileFormatSpec = '(' FileFormatSpecItem {',' FileFormatSpecItem } ')';
+        FileFormatSpecItem = ( FileType | FileCp | FileLabel | FileQuote | FileDelimiter | FileNoEof | FileTableIs | 
+                               FileHeaderIs | FileRecordIs | FileCommentIs | FileTabIs | FileFilter | FileInternetURLIs | FileInternetUserAgentIs );
+
+            FileType = (  ?helpid=46198? 'biff' |  ?helpid=46199? 'dif' |  ?helpid=46200? 'fix' |  ?helpid=46201? 'html' |  ?helpid=46202? 'json' |  ?helpid=46203? 'kml' |  ?helpid=46204? 'ooxml' |  ?helpid=46205? 'qvd' |  ?helpid=46206? 'qvx' |  ?helpid=46207? 'txt' |  ?helpid=46208? 'xml' |  ?helpid=46209? 'xmlGeneric' |  ?helpid=46210? 'xmlSax' |  ?helpid=46211? 'xmlSimple' );
+            FileCp = ( FileCpName | FileCpGeneric);
+                FileCpName = ( ?helpid=46212? 'ansi' |  ?helpid=46213? 'oem' |  ?helpid=46214? 'mac' |  ?helpid=46215? 'utf8' |  ?helpid=46216? 'utf7' |  ?helpid=46217? 'symbol' |  ?helpid=46218? 'unicode');
+                FileCpGeneric =  ?helpid=46219? 'codepage'  ?helpid=46220? 'is' LITERAL_NUMBER;
+            FileLabel = (  ?helpid=46221? 'embedded' |  ?helpid=46222? 'explicit' |  ?helpid=46223? 'no' )  ?helpid=46224? 'labels';
+            FileQuote = (  ?helpid=46225? 'msq' |  ?helpid=46226? 'no'  ?helpid=46227? 'quotes' );
+            FileDelimiter =  ?helpid=46228? 'delimiter'  ?helpid=46229? 'is' (  ?helpid=46230? 'spaces' | IDENTIFIER | LITERAL_NUMBER | LITERAL_STRING | SYNTAX_COLON );
+                (* Use quoted literals for delimiter. Colon specifically added because its common *)
+                (* Delimiter is a single ascii character, or an escape sequence like: \\\\, \\t, \, \\b, \
+, \\0octal, \\xHex  *)
+
+            FileNoEof =  ?helpid=46231? 'no'  ?helpid=46232? 'eof';
+            FileTableIs =  ?helpid=46233? 'Table'  ?helpid=46234? 'is' SecretTableName;
+            FileHeaderIs =  ?helpid=46235? 'Header'  ?helpid=46236? 'is' ( FileRecordSingleLine | FileRecordBytes | FileRecordManyLines );
+            FileRecordIs =  ?helpid=46237? 'Record'  ?helpid=46238? 'is' ( FileRecordSingleLine | FileRecordBytes | FileRecordManyLines );
+                FileRecordSingleLine = LineKeyword;
+                FileRecordBytes = LITERAL_NUMBER;
+                FileRecordManyLines = LITERAL_NUMBER LineKeyword;
+                    LineKeyword = (  ?helpid=46239? 'line' |  ?helpid=46240? 'lines' );
+
+            FileCommentIs =  ?helpid=46241? 'Comment'  ?helpid=46242? 'is' AnyString;
+            FileTabIs =  ?helpid=46243? 'tab'  ?helpid=46244? 'is' LITERAL_NUMBER;
+
+            FileFilter = ?deprecated?  ?helpid=46245? 'filters' '(' FileFilterItem {',' FileFilterItem} ')' ;
+                FileFilterItem = ( FileFilterItemColSplit |
+                                   FileFilterItemColumnExtract |
+                                   FileFilterItemExpand |
+                                   FileFilterItemInterpret |
+                                   FileFilterItemRemove |
+                                   FileFilterItemReplace |
+                                   FileFilterItemRotate |
+                                   FileFilterItemHeaderRename | 
+                                   FileFilterItemTranspose | 
+                                   FileFilterItemUnwrap );
+
+                    FileFilterItemReplace =  ?helpid=46246? 'Replace' '(' FileFilterItemReplaceColumn ',' FileFilterItemReplaceFromDirection ',' FileFilterStringCond ')';
+                        FileFilterItemReplaceColumn = LITERAL_NUMBER;
+                        FileFilterItemReplaceFromDirection = ( ?helpid=46247? 'top' |  ?helpid=46248? 'bottom' |  ?helpid=46249? 'right' |  ?helpid=46250? 'left' );
+                    FileFilterItemRemove =  ?helpid=46251? 'Remove' '(' ( ?helpid=46252? 'Row'| ?helpid=46253? 'Col') ',' (FileFilterRowCond | FileFilterTableIndex) ')';
+                    FileFilterItemHeaderRename =  ?helpid=46254? 'Top' '(' LITERAL_NUMBER ',' AnyString ')';
+                    FileFilterItemInterpret =  ?helpid=46255? 'Interpret' '(' LITERAL_NUMBER ','  AnyString  ',' AnyString ','  LITERAL_NUMBER   ')';
+                    FileFilterItemUnwrap =  ?helpid=46256? 'Unwrap' '(' ( ?helpid=46257? 'Row'| ?helpid=46258? 'Col') ','  (FileFilterTableIndex |FileFilterRowCond) ')';
+                    FileFilterItemRotate =  ?helpid=46259? 'Rotate' '(' ( ?helpid=46260? 'left'| ?helpid=46261? 'right')   ')';
+                    FileFilterItemColumnExtract =  ?helpid=46262? 'ColXtr' '(' LITERAL_NUMBER ',' FileFilterRowCond ',' LITERAL_NUMBER  ')';
+                    FileFilterItemTranspose =  ?helpid=46263? 'Transpose' '(' ')';
+                    FileFilterItemExpand =  ?helpid=46264? 'Expand' '(' LITERAL_NUMBER ',' AnyString ',' LITERAL_NUMBER [',' FileFilterRowCond ]  ')' ;
+                    FileFilterItemColSplit =  ?helpid=46265? 'ColSplit' '(' LITERAL_NUMBER ','  FileFilterIntArray ')';
+
+                                    FileFilterStringCond =  ?helpid=46266? 'StrCnd' '(' ( ?helpid=46267? 'null' |
+                                                                         ?helpid=46268? 'equal' ',' AnyString |
+                                                                         ?helpid=46269? 'contain' ',' AnyString |
+                                                                         ?helpid=46270? 'start' ',' AnyString |
+                                                                         ?helpid=46271? 'end' ',' AnyString |
+                                                                         ?helpid=46272? 'length' ',' LITERAL_NUMBER |
+                                                                         ?helpid=46273? 'shorter' ',' LITERAL_NUMBER| (* Acually means strings longer than x !. 'Buggy' name !  *)
+                                                                         ?helpid=46274? 'longer' ',' LITERAL_NUMBER | (* Acually means strings shorter than x ! 'Buggy' name ! *)
+                                                                         ?helpid=46275? 'numerical') [FileFilterStringCondOptionList] ')' ;
+                                        FileFilterStringCondOptionList = {',' FileFilterStringCondOption };
+                                            FileFilterStringCondOption = (  ?helpid=46276? 'not' |  ?helpid=46277? 'case' );
+
+                                    FileFilterTableIndex =  ?helpid=46278? 'Pos' '(' ( ?helpid=46279? 'Top'| ?helpid=46280? 'Bottom') ','  LITERAL_NUMBER ')';
+                                    FileFilterSelectPattern =  ?helpid=46281? 'Select' '(' LITERAL_NUMBER ',' LITERAL_NUMBER ')';
+
+                                    FileFilterRowCond = (FileFilterRowCondCompound | FileFilterRowCondSimple );
+                                        FileFilterRowCondCompound =  ?helpid=46282? 'RowCnd' '('  ?helpid=46283? 'Compound' ',' FileFilterRowCondSimple {',' FileFilterRowCondSimple} ')';
+                                        FileFilterRowCondSimple = ( FileFilterRowCondCellValue | FileFilterRowCondInterval | FileFilterRowCondColMatch | FileFilterRowCondEvery );
+                                            FileFilterRowCondCellValue =  ?helpid=46284? 'RowCnd' '('  ?helpid=46285? 'CellValue' ',' LITERAL_NUMBER ',' FileFilterStringCond ')';
+                                            FileFilterRowCondInterval =  ?helpid=46286? 'RowCnd' '('   ?helpid=46287? 'Interval' ',' FileFilterTableIndex ',' FileFilterTableIndex ',' FileFilterSelectPattern ')';
+                                            FileFilterRowCondColMatch =  ?helpid=46288? 'RowCnd' '('   ?helpid=46289? 'ColMatch' ')';
+                                            FileFilterRowCondEvery =  ?helpid=46290? 'RowCnd' '('   ?helpid=46291? 'Every' ')';
+
+                                    FileFilterIntArray =  ?helpid=46292? 'IntArray' '(' [ LITERAL_NUMBER {',' LITERAL_NUMBER} ] ')';
+            FileInternetURLIs =  ?helpid=46293? 'URL'  ?helpid=46294? 'is' SensitiveAnyString;
+            FileInternetUserAgentIs =  ?helpid=46295? 'UserAgent'  ?helpid=46296? 'is' AnyString;
+
+    LoadClauses = [(FileWhere | FileWhile)] [FileGroupBy];
+    FileWhere =  ?helpid=46297? 'Where' BasicExpression;
+    FileWhile =  ?helpid=46298? 'While' BasicExpression;
+    FileGroupBy =  ?helpid=46299? 'Group'  ?helpid=46300? 'By' Expression {',' Expression};
+    FileOrderBy =  ?helpid=46301? 'Order'  ?helpid=46302? 'By' FileOrderByFieldAscDesc {',' FileOrderByFieldAscDesc };
+        FileOrderByFieldAscDesc = (FieldName|FieldNumber) [( ?helpid=46303? 'asc'| ?helpid=46304? 'desc')];
+
+
+
+LoosenTableStatement = {DefaultPrefix} ?Statement?  ?helpid=46305? 'Loosen' ( ?helpid=46306? 'Table'| ?helpid=46307? 'Tables') TableName {',' TableName};
+
+MapUsingStatement = {MapUsingPrefix} ?Statement?  ?helpid=46308? 'Map' MapUsingFieldList  ?helpid=46309? 'using' MapUsingMapName;
+    MapUsingFieldList = FieldNameOrStar {',' FieldNameOrStar};
+    MapUsingMapName = AnyString;
+
+NullAsValueStatement = {DefaultPrefix} ?Statement?  ?helpid=46310? 'NullAsValue' FieldNameOrStar {',' FieldNameOrStar};
+
+NullAsNullStatement = {DefaultPrefix} ?Statement?  ?helpid=46311? 'NullAsNull' FieldNameOrStar {',' FieldNameOrStar};
+
+QualifyStatement = {DefaultPrefix} ?Statement?  ?helpid=46312? 'Qualify' FieldNameOrStar {',' FieldNameOrStar};
+UnqualifyStatement = {DefaultPrefix} ?Statement?  ?helpid=46313? 'Unqualify' FieldNameOrStar {',' FieldNameOrStar};
+
+RemStatement = ?Statement?  ?helpid=46314? 'Rem' SecretRawText;
+
+RenameFieldStatement = {DefaultPrefix} ?Statement?  ?helpid=46315? 'Rename' ( ?helpid=46316? 'Field'| ?helpid=46317? 'Fields') ( ?helpid=46318? 'using' TableName | RenameFieldRename {',' RenameFieldRename});
+    RenameFieldRename = FieldName  ?helpid=46319? 'to' FieldName;
+
+RenameTableStatement = {DefaultPrefix} ?Statement?  ?helpid=46320? 'Rename' ( ?helpid=46321? 'Table'| ?helpid=46322? 'Tables') ( ?helpid=46323? 'using' TableName | RenameTableRename {',' RenameTableRename});
+    RenameTableRename = TableName  ?helpid=46324? 'to' TableName;
+
+
+SectionStatement = ?Statement?  ?helpid=46325? 'Section' SectionType;
+    SectionType = (  ?helpid=46326? 'Access' |  ?helpid=46327? 'Application' );
+
+SelectStatement = {SelectPrefixOrLabel} ?Statement?  ?helpid=46328? 'Select' AnonymousRawText;
+
+SetStatement = {DefaultPrefix} ?Statement?  ?helpid=46329? 'Set' VariableName '=' [RawText];
+
+SleepStatement = {DefaultPrefix} ?Statement?  ?helpid=46330? 'Sleep' Expression;
+
+SqlStatement  = {SelectPrefixOrLabel} ?Statement?  ?helpid=46331? 'SQL' SensitiveRawText;
+
+SqlColumnsStatement = {DefaultPrefix} ?Statement?  ?helpid=46332? 'SQLColumns';
+SqlTablesStatement = {DefaultPrefix} ?Statement?  ?helpid=46333? 'SQLTables';
+SqlTypesStatement = {DefaultPrefix} ?Statement?  ?helpid=46334? 'SQLTypes';
+
+QslStatement = {SelectPrefixOrLabel} ?Statement?  ?helpid=46335? 'QSL' AnonymousRawText;
+
+StarStatement = {DefaultPrefix} ?Statement?  ?helpid=46336? 'Star'  ?helpid=46337? 'is' [AnyStringOrAnySymbol];
+
+StoreStatement = {DefaultPrefix} ?Statement?  ?helpid=46338? 'Store' [<StoreFieldList  ?helpid=46339? 'from'>] TableName  ?helpid=46340? 'into' CompositeFileName [StoreFormatSpec];
+    StoreFormatSpec = '(' StoreFormatSpecItem {',' StoreFormatSpecItem } ')';
+        StoreFormatSpecItem = ( StoreFileType | FileDelimiter  );
+            StoreFileType = ( ?helpid=46341? 'qvd' |  ?helpid=46342? 'txt' |  ?helpid=46343? 'qvx');
+
+    StoreFieldList = StorFieldListFieldOrStar {',' StorFieldListFieldOrStar };
+        StorFieldListFieldOrStar =  (  ?helpid=46344? '*' | StoreField );
+        StoreField = StoreFieldRef [  ?helpid=46345? 'as' StoreFieldRefAlias];
+            StoreFieldRef = ( IDENTIFIER | LITERAL_FIELD | LITERAL_STRING );
+            StoreFieldRefAlias = ( IDENTIFIER | LITERAL_FIELD | LITERAL_NUMBER | LITERAL_STRING );
+
+
+TagTableStatement = {DefaultPrefix} ?Statement?  ?helpid=46346? 'Tag' TableTagSecondPart;
+UntagTableStatement = {DefaultPrefix} ?Statement?  ?helpid=46347? 'Untag' TableTagSecondPart;
+    TableTagSecondPart =   ?helpid=46348? 'Table' TagTableWith;
+        TagTableWith = TableName {',' TableName}  ?helpid=46349? 'With' AnyString {',' AnyString};
+
+
+TagStatement = {DefaultPrefix} ?Statement?  ?helpid=46350? 'Tag' TagSecondPart;
+UntagStatement = {DefaultPrefix} ?Statement?  ?helpid=46351? 'Untag' TagSecondPart;
+    TagSecondPart =  [( ?helpid=46352? 'Fields' |  ?helpid=46353? 'Field' )] ( TagUsingTable | TagFieldWith );
+        TagUsingTable =  ?helpid=46354? 'Using' TableName;
+        TagFieldWith = FieldName {',' FieldName}  ?helpid=46355? 'With' AnyString {',' AnyString};
+
+
+TraceStatement = {DefaultPrefix} ?Statement?  ?helpid=46356? 'Trace' RawText;
+
+UnmapStatement = {DefaultPrefix} ?Statement?  ?helpid=46357? 'Unmap' (AllFieldStar | FieldName {',' FieldName} );
+
+
+
+SearchStatement = {DefaultPrefix} ?Statement?  ?helpid=46358? 'Search' ( ?helpid=46359? 'Include' |  ?helpid=46360? 'Exclude' ) FieldNameOrStar {',' FieldNameOrStar};
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 4: Direct Discovery                                                   *)
+(******************************************************************************)
+(******************************************************************************)
+
+
+
+(* Direct Discovery 2.0 *)
+
+DD_KeyWords = (  ?helpid=46361? 'and' |  ?helpid=46362? 'as' |  ?helpid=46363? 'cross' |  ?helpid=46364? 'detach' |  ?helpid=46365? 'detail' |  ?helpid=46366? 'dimension' |  ?helpid=46367? 'distinct' |  ?helpid=46368? 'external' |
+                 ?helpid=46369? 'false' |  ?helpid=46370? 'from' |  ?helpid=46371? 'full' |  ?helpid=46372? 'in' |  ?helpid=46373? 'inner' |  ?helpid=46374? 'is' |  ?helpid=46375? 'join' |  ?helpid=46376? 'left' |  ?helpid=46377? 'like' |  ?helpid=46378? 'measure' |
+                 ?helpid=46379? 'native' |  ?helpid=46380? 'natural' |  ?helpid=46381? 'not' |  ?helpid=46382? 'null' |  ?helpid=46383? 'on' |  ?helpid=46384? 'or' |  ?helpid=46385? 'right' |  ?helpid=46386? 'true' |  ?helpid=46387? 'using' |  ?helpid=46388? 'where' );
+
+DD_SimpleIdentifier = IDENTIFIER - DD_KeyWords;
+DD_QuotedIdentifier = LITERAL_FIELD;
+DD_Name = ( DD_SimpleIdentifier | DD_QuotedIdentifier );
+DD_AliasName = < ( DD_NativeExpression | DD_ValueExpression )  ?helpid=46389? 'as' DD_Name >;
+
+DD_QualifiedName = ( DD_TightQualifiedName | DD_FreeStyleQualifiedName );
+    DD_TightQualifiedName = DD_TightName { <  ?helpid=46390? '.' DD_TightName > };
+        DD_TightName = LITERAL_FIELD;
+    DD_FreeStyleQualifiedName = DD_Name { < [ ?helpid=46391? '.'] DD_FreeStyleName > };
+        DD_FreeStyleName = ( DD_Name | LITERAL_NUMBER ); (* '.E' in '.Employees' becomes a numeric literal + 'mployees' *)
+
+DD_QuotedString = LITERAL_STRING;
+DD_NumericLiteral = LITERAL_NUMBER;
+DD_SpecialLiteral = (  ?helpid=46392? 'false' |  ?helpid=46393? 'null' |  ?helpid=46394? 'true' );
+DD_LiteralValue = ( DD_NumericLiteral | DD_QuotedString | DD_SpecialLiteral );
+DD_VariableSubstitution =  ?helpid=46395? '{' DD_SimpleIdentifier  ?helpid=46396? '}';
+
+DD_DirectQueryStatement = {TableLabel} ?Statement?  ?helpid=46397? 'DIRECT'  ?helpid=46398? 'QUERY' DD_ColumnClauses DD_FromClause { DD_JoinClause } [DD_WhereClause];
+
+
+DD_FromClause =  ?helpid=46399? 'FROM' DD_QualifiedName;
+
+DD_ColumnClauses = DD_ColumnClause {DD_ColumnClause};
+    DD_ColumnClause = DD_ColumnType DD_FieldList;
+        DD_ColumnType = (  ?helpid=46400? 'detach' |  ?helpid=46401? 'detail' |  ?helpid=46402? 'dimension' |  ?helpid=46403? 'external' |  ?helpid=46404? 'measure' );
+        DD_FieldList = DD_DerivedColumn { ',' DD_DerivedColumn };
+            DD_DerivedColumn = ( DD_AliasName | DD_QualifiedName );
+
+DD_JoinClause = ( DD_ImplicitJoinClause | DD_CrossJoinClause | DD_InnerJoinClause | DD_EquiJoinClause | DD_NaturalJoinClause | DD_OuterJoinClause );
+    DD_ImplicitJoinClause = < ',' DD_QualifiedName >;
+    DD_CrossJoinClause = <  ?helpid=46405? 'CROSS'  ?helpid=46406? 'JOIN' DD_QualifiedName >;
+    DD_InnerJoinClause = < [  ?helpid=46407? 'INNER' ]  ?helpid=46408? 'JOIN' DD_QualifiedName  ?helpid=46409? 'ON' DD_ValueExpression >;
+    DD_EquiJoinClause = <  ?helpid=46410? 'JOIN' DD_QualifiedName  ?helpid=46411? 'USING' DD_NameList >;
+        DD_NameList = '(' DD_Name { ',' DD_Name } ')';
+    DD_NaturalJoinClause = <  ?helpid=46412? 'NATURAL'  ?helpid=46413? 'JOIN' DD_QualifiedName >;
+    DD_OuterJoinClause = < (  ?helpid=46414? 'FULL' |  ?helpid=46415? 'LEFT' |  ?helpid=46416? 'RIGHT' ) [ ?helpid=46417? 'OUTER']  ?helpid=46418? 'JOIN' DD_QualifiedName  ?helpid=46419? 'ON' DD_ValueExpression >;
+
+DD_WhereClause =  ?helpid=46420? 'WHERE' ( DD_ValueExpression | DD_NativeExpression );
+
+DD_NativeExpression =  ?helpid=46421? 'NATIVE' '(' DD_QuotedString ')';
+DD_ValueExpression = DD_ValueTerm [ DD_ValueExpressionTail ];
+    DD_ValueTerm = ( DD_FunctionCall |
+                     DD_QualifiedName |
+                     DD_UnaryExpression |
+                     DD_LiteralValue |
+                     DD_ParenthesizedExpression |
+                     DD_VariableSubstitution );
+
+DD_FunctionCallArguments = DD_ValueExpression {',' DD_ValueExpression };
+DD_FunctionCall = < DD_SimpleIdentifier '(' > [ (DD_FunctionCallArgumentStar | DD_FunctionCallArguments ) ] ')';
+    DD_FunctionCallArgumentStar =  ?helpid=46422? '*';
+
+DD_ExpressionList = '(' DD_FunctionCallArguments ')';
+
+    DD_UnaryExpression = DD_UnaryOp DD_ValueExpression;
+    DD_ParenthesizedExpression = '(' DD_ValueExpression ')';
+    DD_UnaryOp = (  ?helpid=46423? '+' |  ?helpid=46424? '-' |  ?helpid=46425? 'NOT' );
+
+    DD_ValueExpressionTail = ( DD_BinaryOpClause  | DD_InOpClause );
+        DD_BinaryOpClause =  DD_BinaryOp DD_ValueExpression;
+        DD_InOpClause = DD_InOp DD_ExpressionList;
+
+    DD_InOp =  ?helpid=46426? 'in';
+    DD_BinaryOp = (  ?helpid=46427? '%' |  ?helpid=46428? '*' |  ?helpid=46429? '+' |  ?helpid=46430? '-' |   ?helpid=46431? '/' |  ?helpid=46432? '<' |  ?helpid=46433? '<=' |  ?helpid=46434? '<>' | '=' |  ?helpid=46435? '>' |  ?helpid=46436? '>=' |  ?helpid=46437? '||' |
+                     ?helpid=46438? 'and' |  ?helpid=46439? 'is'  |  ?helpid=46440? 'like'|  ?helpid=46441? 'or' );
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 5: Prefix Rules                                                       *)
+(******************************************************************************)
+(******************************************************************************)
+
+
+
+(*************************    Compound Prefix Rules    ************************)
+TableLabel = <TableName  ?helpid=46442? ':'>;
+
+(* Old qv versions allowed the table label to be defined anywhere, allow but *)
+(* dont encourage. Its much easier to analyze the script if the label is a    *)
+(* prefix to the actual LOAD or SELECT statement *)
+
+MisplacedTableLabel = ?deprecated? TableLabel; 
+
+LoadPrefixOrLabel = ( TableLabel | LoadPrefix  );
+LoadPrefix = (  AddPrefix | BufferPrefix | ConcatenatePrefix | CrossTablePrefix | FirstPrefix | 
+                GenericPrefix | HierarchyPrefix | HierarchyBelongsToPrefix | InfoPrefix | 
+                InnerPrefix | IntervalMatchPrefix | JoinPrefix | KeepPrefix | LeftPrefix | 
+                MappingPrefix | NoConcatenatePrefix | OuterJoinPrefix | ReplacePrefix | RightPrefix | 
+                SamplePrefix | SemanticPrefix | WhenOrUnlessPrefix | MergePrefix);
+
+SelectPrefixOrLabel = ( TableLabel | SelectPrefix );
+SelectPrefix = ( AddPrefix | BufferPrefix | ConcatenatePrefix | CrossTablePrefix  | FirstPrefix | 
+                 GenericPrefix | HierarchyPrefix | HierarchyBelongsToPrefix | InfoPrefix | 
+                 InnerPrefix | IntervalMatchPrefix | JoinPrefix | KeepPrefix | LeftPrefix | 
+                 MappingPrefix | NoConcatenatePrefix | OuterJoinPrefix | ReplacePrefix | 
+                 RightPrefix | SamplePrefix | SemanticPrefix | WhenOrUnlessPrefix | MergePrefix);
+
+
+MapUsingPrefix = ( AddPrefix | ReplacePrefix | WhenOrUnlessPrefix );
+
+DefaultPrefix = ( WhenOrUnlessPrefix | MisplacedTableLabel );
+
+
+(*************************    Individual Prefix Rules    ************************)
+
+AddPrefix =  ?helpid=46443? 'Add' [ ?helpid=46444? 'Only'];
+
+BufferPrefix =  ?helpid=46445? 'Buffer' [ '(' BufferPrefixOption[ ',' BufferPrefixOption]  ')' ];
+    BufferPrefixOption = ( BufferPrefixOptionIncremental | BufferPrefixOptionStale );
+        BufferPrefixOptionStale =  ?helpid=46446? 'Stale' [ ?helpid=46447? 'After'] LITERAL_NUMBER [ ( ?helpid=46448? 'day'| ?helpid=46449? 'days'| ?helpid=46450? 'hour'| ?helpid=46451? 'hours') ];
+        BufferPrefixOptionIncremental = (  ?helpid=46452? 'Incremental' | ?deprecated?  ?helpid=46453? 'Inc' | ?deprecated?  ?helpid=46454? 'Incr' );
+
+
+ConcatenatePrefix =  ?helpid=46455? 'Concatenate' ['(' TableName ')'];
+
+CrossTablePrefix =  ?helpid=46456? 'CrossTable' '(' AttributeField ',' DataField [',' QualifierFields ] ')';
+    AttributeField = FieldName;
+    DataField = FieldName;
+    QualifierFields = LITERAL_NUMBER;
+    
+FirstPrefix =  ?helpid=46457? 'First' Expression;
+GenericPrefix =  ?helpid=46458? 'Generic';
+
+HierarchyPrefix =  ?helpid=46459? 'Hierarchy' '(' NodeId ',' ParentId ',' NodeName
+                                  [',' [ParentName]
+                                  [',' [PathSource]
+                                  [',' [PathName]
+                                  [',' [PathDelimiter]
+                                  [',' [HierarchyDepth]
+                                  ] ] ] ] ]    ')';
+    NodeId = FieldName;
+    ParentId = FieldName;
+    NodeName = FieldName;
+    ParentName = FieldName;
+    PathSource = FieldName;
+    PathName = AnyString;
+    PathDelimiter = AnyString;
+    HierarchyDepth = AnyString;
+
+HierarchyBelongsToPrefix =  ?helpid=46460? 'HierarchyBelongsTo' '(' NodeId ',' ParentId ',' NodeName ',' AncestorId ',' AncestorName [',' DepthDiff] ')';
+    AncestorId = AnyString;
+    AncestorName = AnyString;
+    DepthDiff = AnyString;
+
+InfoPrefix = ( ?helpid=46461? 'Bundle' [ ?helpid=46462? 'Info'] |  ?helpid=46463? 'Info' ) [BundleImageSpec];
+    BundleImageSpec =  ?helpid=46464? 'Image_Size' '(' ImageWidth ',' ImageHeight ')';
+        ImageWidth = LITERAL_NUMBER;
+        ImageHeight = LITERAL_NUMBER;
+
+JoinOrKeep = (  ?helpid=46465? 'Join' |  ?helpid=46466? 'Keep' );
+
+InnerPrefix =  ?helpid=46467? 'Inner' JoinOrKeep ['('TableName')'];
+
+IntervalMatchPrefix =  ?helpid=46468? 'IntervalMatch' '(' MatchField {',' KeyField } ')';
+    MatchField = FieldName;
+    KeyField = FieldName;
+
+JoinPrefix =  ?helpid=46469? 'Join' ['(' TableName')'];
+KeepPrefix =  ?helpid=46470? 'Keep' ['(' TableName')'];
+LeftPrefix =  ?helpid=46471? 'Left' JoinOrKeep ['(' TableName')'];
+
+MappingPrefix =  ?helpid=46472? 'Mapping';
+MergePrefix =  ?helpid=46473? 'Merge' [ ?helpid=46474? 'Only'] ['(' FieldName [',' VariableName]')']  ?helpid=46475? 'On' MergeKeyList; MergeKeyList = FieldName {',' FieldName};
+NoConcatenatePrefix =  ?helpid=46476? 'NoConcatenate';
+OuterJoinPrefix =  ?helpid=46477? 'Outer'  ?helpid=46478? 'Join' ['(' TableName ')'];
+ReplacePrefix =  ?helpid=46479? 'Replace' [ ?helpid=46480? 'Only'];
+RightPrefix =  ?helpid=46481? 'Right' JoinOrKeep ['(' TableName ')'];
+
+SamplePrefix =  ?helpid=46482? 'Sample' Expression;
+SemanticPrefix =  ?helpid=46483? 'Semantic';
+
+WhenOrUnlessPrefix = ( ?helpid=46484? 'when'| ?helpid=46485? 'unless') Expression;
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 6: Control Statement Rules                                            *)
+(******************************************************************************)
+(******************************************************************************)
+
+
+WhenOrUnlessExpression = ( ?helpid=46486? 'when'| ?helpid=46487? 'unless') Expression;
+
+CallControl =  ?Control?  ?helpid=46488? 'Call' IDENTIFIER [CallParamList];
+    CallParamList = '(' CallParamListItem {',' CallParamListItem }  ')';
+        CallParamListItem = ( UnquotedVariableNameForCall | Expression );
+            UnquotedVariableNameForCall = ( IDENTIFIER | LITERAL_NUMBER) ;
+            (* Old behaviour: Unquoted tokens are variable names (including numbers) *)
+
+DoControl = ?ControlBegin?  ?helpid=46489? 'Do' [ ( ?helpid=46490? 'while' |  ?helpid=46491? 'until') Expression];
+    ExitDoControl = ?ControlMiddle=DoControl?  ?helpid=46492? 'Exit'  ?helpid=46493? 'Do' [WhenOrUnlessExpression];
+
+LoopControl = ?ControlEnd=DoControl?  ?helpid=46494? 'Loop' [ ( ?helpid=46495? 'while' |  ?helpid=46496? 'until') Expression];
+
+ExitScriptControl = ?Control?  ?helpid=46497? 'Exit'  ?helpid=46498? 'Script' [WhenOrUnlessExpression];
+
+ForControl = ?ControlBegin?  ?helpid=46499? 'For' ( ForToControl | ForEachControl);
+    ForToControl = VariableName '=' Expression  ?helpid=46500? 'to' Expression [ForLoopStep];
+    ForEachControl =  ?helpid=46501? 'Each' VariableName  ?helpid=46502? 'in' ForEachList;
+        ForEachList = ( ForEachDir | ForEachFile | ForEachExpression | ForEachFieldValue  );
+            ForEachFile =  ?helpid=46503? 'FileList' '(' Expression ')' ;
+            ForEachDir =  ?helpid=46504? 'DirList' '(' Expression ')' ;
+            ForEachFieldValue =  ?helpid=46505? 'FieldValueList' '(' Expression ')' ;
+            ForEachExpression = Expression {',' Expression };
+            ForLoopStep =  ?helpid=46506? 'step' Expression;
+
+ExitForControl = ?ControlMiddle=ForControl?  ?helpid=46507? 'Exit'  ?helpid=46508? 'For' [WhenOrUnlessExpression];
+ForNextControl = ?ControlEnd=ForControl?  ?helpid=46509? 'Next' [VariableName];
+
+IfControl = ?ControlBegin?  ?helpid=46510? 'If' Expression  ?helpid=46511? 'then';
+    ElseIfControl = ?ControlMiddle=IfControl?  ?helpid=46512? 'ElseIf' Expression  ?helpid=46513? 'then';
+    ElseControl = ?ControlMiddle=IfControl?  ?helpid=46514? 'Else';
+    EndIfControl = (?ControlEnd=IfControl?  ?helpid=46515? 'End'  ?helpid=46516? 'If' | ?Control?  ?helpid=46517? 'EndIf');
+
+LetControl ?Control? = <VariableName '='> [Expression];
+
+SubControl = ?ControlBegin?  ?helpid=46518? 'Sub' IDENTIFIER ['(' SubParamName {',' SubParamName} ')'];
+    EndSubControl = (?ControlEnd=SubControl? ?Control?  ?helpid=46519? 'End'  ?helpid=46520? 'Sub' | ?Control?  ?helpid=46521? 'EndSub' );
+    ExitSubControl =  ?ControlMiddle=SubControl?  ?helpid=46522? 'Exit'  ?helpid=46523? 'Sub' [WhenOrUnlessExpression];
+        SubParamName = IDENTIFIER;
+
+SwitchControl = ?ControlBegin?  ?helpid=46524? 'Switch' Expression;
+    SwitchCaseControl = ?ControlMiddle=SwitchControl?  ?helpid=46525? 'Case' Expression {',' Expression};
+    SwitchDefaultControl = ?ControlMiddle=SwitchControl?  ?helpid=46526? 'Default';
+    SwitchEndControl = (?ControlEnd=SwitchControl?  ?helpid=46527? 'End'  ?helpid=46528? 'Switch' | ?Control?  ?helpid=46529? 'EndSwitch' );
+
+
+(******************************************************************************)
+(******************************************************************************)
+(* Part 7: Derived Statement Rules                                            *)
+(******************************************************************************)
+(******************************************************************************)
+
+DefinitionStatement ?product=sense? = DefinitionLabel ?Statement?  ?helpid=46530? 'Declare' [( ?helpid=46531? 'Field' |  ?helpid=46532? 'Fields')]  ?helpid=46533? 'Definition' (DefinitionSetupClause | DefinitionUsingClause );
+    DefinitionLabel = <DefinitionName  ?helpid=46534? ':'>;
+        DefinitionName = ( IDENTIFIER | LITERAL_STRING | LITERAL_FIELD | LITERAL_NUMBER);
+
+    DefinitionSetupClause = [PrefixedTagList] [DefinitionParameters] DefinitionFields [DefinitionGroups];
+        PrefixedTagList =  ?helpid=46535? 'Tagged' TagList;
+            TagList = (AnyString | ParenthesesStringList);
+                ParenthesesStringList = '(' AnyString {',' AnyString} ')';
+
+        DefinitionParameters =  ?helpid=46536? 'Parameters' DefinitionParameterAssignments;
+            DefinitionParameterAssignments = DefinitionParameterAssignment {',' DefinitionParameterAssignment};
+                DefinitionParameterAssignment = DefinitionParameterName '=' DefinitionParameterValue;
+                    DefinitionParameterValue = ( AnyStringOrNumber | UnaryParameter );
+                        UnaryParameter = OPERATOR_MINUS LITERAL_NUMBER;
+                    DefinitionParameterName = AnyString;
+
+        DefinitionFields =  ?helpid=46537? 'Fields' DefinitionField {',' DefinitionField};
+            DefinitionField = DefinitionFieldExpression  ?helpid=46538? 'As' DefinitionFieldName [ PrefixedTagList ];
+                DefinitionFieldExpression =  DefinitionUnaryExpression [ExpressionBinaryOperator DefinitionFieldExpression];
+                    DefinitionUnaryExpression = (  BasicFunctionCall |
+                                                    AggregationFunctionCall |
+                                                    ModuleFunctionCall |
+                                                    <ExpressionUnaryOperator DefinitionFieldExpression> |
+                                                    ExpressionConstant |
+                                                    DefinitionExpressionFieldRef |
+                                                    DefinitionParameterName |
+                                                    ExpressionFieldRef |
+                                                    '(' DefinitionFieldExpression ')'
+                                                    );
+                        DefinitionExpressionFieldRef =  ?helpid=46539? '$' LITERAL_NUMBER;
+                DefinitionFieldName = AnyStringOrNumber;
+
+        DefinitionGroups =  ?helpid=46540? 'Groups' DefinitionGroup {',' DefinitionGroup};
+            DefinitionGroup = DefinitionGroupFieldNames  ?helpid=46541? 'Type' DefinitionGroupType  ?helpid=46542? 'As' DefinitionGroupName;
+                DefinitionGroupFieldNames = SimpleStringList;
+                    SimpleStringList = AnyString {',' AnyString};
+                DefinitionGroupType = (  ?helpid=46543? 'drilldown' |  ?helpid=46544? 'collection' );
+                DefinitionGroupName = AnyString;
+
+    DefinitionUsingClause =  ?helpid=46545? 'Using' DefinitionName [ ?helpid=46546? 'With' DefinitionParameterAssignments];
+
+DeriveFieldStatement ?product=sense? = ?Statement?  ?helpid=46547? 'Derive' [( ?helpid=46548? 'Field' |  ?helpid=46549? 'Fields')] DeriveFromClause DeriveUsingClause;
+    DeriveFromClause =  ?helpid=46550? 'From' ( DeriveExplicitClause | DeriveImplicitClause | DeriveFieldClause );
+        DeriveFieldClause = [( ?helpid=46551? 'Field' |  ?helpid=46552? 'Fields')] DeriveFieldList;
+            DeriveFieldList = SimpleStringList;
+        DeriveExplicitClause =  ?helpid=46553? 'Explicit' [( ?helpid=46554? 'Tag' |  ?helpid=46555? 'Tags')] TagList;
+        DeriveImplicitClause =  ?helpid=46556? 'Implicit' [( ?helpid=46557? 'Tag' |  ?helpid=46558? 'Tags')];
+    DeriveUsingClause =  ?helpid=46559? 'Using' DefinitionName;
+
+
+
+
+
+BasicFunctionCall = (Acos_Func | 
+          Acosh_Func | 
+          AddMonths_Func | 
+          AddYears_Func | 
+          Age_Func | 
+          Alt_Func | 
+          ApplyCodepage_Func | 
+          ApplyMap_Func | 
+          ARGB_Func | 
+          Asin_Func | 
+          Asinh_Func | 
+          Atan_Func | 
+          Atan2_Func | 
+          Atanh_Func | 
+          Attribute_Func | 
+          Author_Func | 
+          AutoNumber_Func | 
+          AutoNumberHash128_Func | 
+          AutoNumberHash256_Func | 
+          BitCount_Func | 
+          Black_Func | 
+          BlackAndSchole_Func | 
+          Blue_Func | 
+          Brown_Func | 
+          Capitalize_Func | 
+          Ceil_Func | 
+          ChiDist_Func | 
+          ChiInv_Func | 
+          Chr_Func | 
+          Class_Func | 
+          ClientPlatform_Func | 
+          Coalesce_Func | 
+          Color_Func | 
+          ColorMapHue_Func | 
+          ColorMapJet_Func | 
+          ColorMix1_Func | 
+          ColorMix2_Func | 
+          Combin_Func | 
+          ComputerName_Func | 
+          ConnectString_Func | 
+          ConvertToLocalTime_Func | 
+          Cos_Func | 
+          Cosh_Func | 
+          Cyan_Func | 
+          DarkGray_Func | 
+          Date_Func | 
+          Date#_Func | 
+          Day_Func | 
+          DayEnd_Func | 
+          DaylightSaving_Func | 
+          DayName_Func | 
+          DayNumberOfQuarter_Func | 
+          DayNumberOfYear_Func | 
+          DayStart_Func | 
+          Div_Func | 
+          DocumentName_Func | 
+          DocumentPath_Func | 
+          DocumentTitle_Func | 
+          Dual_Func | 
+          e_Func | 
+          ElapsedSeconds_Func | 
+          EmptyIsNull_Func | 
+          EngineVersion_Func | 
+          Evaluate_Func | 
+          Even_Func | 
+          Exists_Func | 
+          Exp_Func | 
+          fAbs_Func | 
+          Fact_Func | 
+          False_Func | 
+          FDist_Func | 
+          FieldElemNo_Func | 
+          FieldIndex_Func | 
+          FieldName_Func | 
+          FieldNumber_Func | 
+          FieldValue_Func | 
+          FieldValueCount_Func | 
+          FileBaseName_Func | 
+          FileDir_Func | 
+          FileExtension_Func | 
+          FileName_Func | 
+          FilePath_Func | 
+          FileSize_Func | 
+          FileTime_Func | 
+          FindOneOf_Func | 
+          FInv_Func | 
+          FirstWorkDate_Func | 
+          Floor_Func | 
+          fMod_Func | 
+          Frac_Func | 
+          FV_Func | 
+          GeoAggrGeometry_Func | 
+          GeoBoundingBox_Func | 
+          GeoCountVertex_Func | 
+          GeoGetBoundingBox_Func | 
+          GeoGetPolygonCenter_Func | 
+          GeoInvProjectGeometry_Func | 
+          GeoMakePoint_Func | 
+          GeoProject_Func | 
+          GeoProjectGeometry_Func | 
+          GeoReduceGeometry_Func | 
+          GetCollationLocale_Func | 
+          GetDataModelHash_Func | 
+          GetFolderPath_Func | 
+          GetObjectField_Func | 
+          GMT_Func | 
+          Green_Func | 
+          Hash128_Func | 
+          Hash160_Func | 
+          Hash256_Func | 
+          Hour_Func | 
+          HSL_Func | 
+          If_Func | 
+          InDay_Func | 
+          InDayToTime_Func | 
+          Index_Func | 
+          InLunarWeek_Func | 
+          InLunarWeekToDate_Func | 
+          InMonth_Func | 
+          InMonths_Func | 
+          InMonthsToDate_Func | 
+          InMonthToDate_Func | 
+          InQuarter_Func | 
+          InQuarterToDate_Func | 
+          Interval_Func | 
+          Interval#_Func | 
+          InWeek_Func | 
+          InWeekToDate_Func | 
+          InYear_Func | 
+          InYearToDate_Func | 
+          IsNull_Func | 
+          IsNum_Func | 
+          IsPartialReload_Func | 
+          IsText_Func | 
+          IterNo_Func | 
+          KeepChar_Func | 
+          LastWorkDate_Func | 
+          Left_Func | 
+          Len_Func | 
+          LevenshteinDist_Func | 
+          LightBlue_Func | 
+          LightCyan_Func | 
+          LightGray_Func | 
+          LightGreen_Func | 
+          LightMagenta_Func | 
+          LightRed_Func | 
+          LocalTime_Func | 
+          Log_Func | 
+          Log10_Func | 
+          Lookup_Func | 
+          Lower_Func | 
+          LTrim_Func | 
+          LunarWeekEnd_Func | 
+          LunarWeekName_Func | 
+          LunarWeekStart_Func | 
+          Magenta_Func | 
+          MakeDate_Func | 
+          MakeTime_Func | 
+          MakeWeekDate_Func | 
+          MapSubString_Func | 
+          Match_Func | 
+          Mid_Func | 
+          Minute_Func | 
+          MixMatch_Func | 
+          Mod_Func | 
+          Money_Func | 
+          Money#_Func | 
+          Month_Func | 
+          MonthEnd_Func | 
+          MonthName_Func | 
+          MonthsEnd_Func | 
+          MonthsName_Func | 
+          MonthsStart_Func | 
+          MonthStart_Func | 
+          NetWorkDays_Func | 
+          NoOfFields_Func | 
+          NoOfRows_Func | 
+          NoOfTables_Func | 
+          NormDist_Func | 
+          NormInv_Func | 
+          Now_Func | 
+          nPer_Func | 
+          Null_Func | 
+          Num_Func | 
+          Num#_Func | 
+          NumAvg_Func | 
+          NumCount_Func | 
+          NumMax_Func | 
+          NumMin_Func | 
+          NumSum_Func | 
+          Odd_Func | 
+          Ord_Func | 
+          OSUser_Func | 
+          Peek_Func | 
+          Permut_Func | 
+          Pi_Func | 
+          Pick_Func | 
+          Pmt_Func | 
+          Pow_Func | 
+          Previous_Func | 
+          ProductVersion_Func | 
+          PurgeChar_Func | 
+          PV_Func | 
+          QlikTechBlue_Func | 
+          QlikTechGray_Func | 
+          QlikViewVersion_Func | 
+          QuarterEnd_Func | 
+          QuarterName_Func | 
+          QuarterStart_Func | 
+          QvdCreateTime_Func | 
+          QvdFieldName_Func | 
+          QvdNoOfFields_Func | 
+          QvdNoOfRecords_Func | 
+          QvdTableName_Func | 
+          QVUser_Func | 
+          Rand_Func | 
+          RangeAvg_Func | 
+          RangeCorrel_Func | 
+          RangeCount_Func | 
+          RangeFractile_Func | 
+          RangeFractileExc_Func | 
+          RangeIrr_Func | 
+          RangeKurtosis_Func | 
+          RangeMax_Func | 
+          RangeMaxString_Func | 
+          RangeMin_Func | 
+          RangeMinString_Func | 
+          RangeMissingCount_Func | 
+          RangeMode_Func | 
+          RangeNpv_Func | 
+          RangeNullCount_Func | 
+          RangeNumericCount_Func | 
+          RangeOnly_Func | 
+          RangeSkew_Func | 
+          RangeStDev_Func | 
+          RangeSum_Func | 
+          RangeTextCount_Func | 
+          RangeXirr_Func | 
+          RangeXnpv_Func | 
+          Rate_Func | 
+          RecNo_Func | 
+          Red_Func | 
+          ReloadTime_Func | 
+          Repeat_Func | 
+          Replace_Func | 
+          RGB_Func | 
+          Right_Func | 
+          Round_Func | 
+          RowNo_Func | 
+          RTrim_Func | 
+          Second_Func | 
+          SetDateYear_Func | 
+          SetDateYearMonth_Func | 
+          Sign_Func | 
+          Sin_Func | 
+          Sinh_Func | 
+          Sqr_Func | 
+          Sqrt_Func | 
+          SubField_Func | 
+          SubStringCount_Func | 
+          SysColor_Func | 
+          TableName_Func | 
+          TableNumber_Func | 
+          Tan_Func | 
+          Tanh_Func | 
+          TDist_Func | 
+          Text_Func | 
+          TextBetween_Func | 
+          Time_Func | 
+          Time#_Func | 
+          Timestamp_Func | 
+          Timestamp#_Func | 
+          TimeZone_Func | 
+          TInv_Func | 
+          Today_Func | 
+          Trim_Func | 
+          True_Func | 
+          Upper_Func | 
+          UTC_Func | 
+          Week_Func | 
+          WeekDay_Func | 
+          WeekEnd_Func | 
+          WeekName_Func | 
+          WeekStart_Func | 
+          WeekYear_Func | 
+          White_Func | 
+          WildMatch_Func | 
+          Year_Func | 
+          Year2Date_Func | 
+          YearEnd_Func | 
+          YearName_Func | 
+          YearStart_Func | 
+          YearToDate_Func | 
+          Yellow_Func
+);
+
+
+AggregationFunctionCall = (Avg_Func | 
+          Chi2Test_Chi2_Func | 
+          Chi2Test_DF_Func | 
+          Chi2Test_p_Func | 
+          Concat_Func | 
+          Correl_Func | 
+          Count_Func | 
+          FirstSortedValue_Func | 
+          FirstValue_Func | 
+          Fractile_Func | 
+          FractileExc_Func | 
+          Irr_Func | 
+          Kurtosis_Func | 
+          LastValue_Func | 
+          LinEst_B_Func | 
+          LinEst_DF_Func | 
+          LinEst_F_Func | 
+          LinEst_M_Func | 
+          LinEst_R2_Func | 
+          LinEst_SEB_Func | 
+          LinEst_SEM_Func | 
+          LinEst_SEY_Func | 
+          LinEst_SSReg_Func | 
+          LinEst_SSResid_Func | 
+          Max_Func | 
+          MaxString_Func | 
+          Median_Func | 
+          Min_Func | 
+          MinString_Func | 
+          MissingCount_Func | 
+          Mode_Func | 
+          Npv_Func | 
+          NullCount_Func | 
+          NumericCount_Func | 
+          Only_Func | 
+          Skew_Func | 
+          StDev_Func | 
+          StErr_Func | 
+          StEYX_Func | 
+          Sum_Func | 
+          TextCount_Func | 
+          TTest1_Conf_Func | 
+          TTest1_DF_Func | 
+          TTest1_Dif_Func | 
+          TTest1_Lower_Func | 
+          TTest1_Sig_Func | 
+          TTest1_StErr_Func | 
+          TTest1_t_Func | 
+          TTest1_Upper_Func | 
+          TTest1w_Conf_Func | 
+          TTest1w_DF_Func | 
+          TTest1w_Dif_Func | 
+          TTest1w_Lower_Func | 
+          TTest1w_Sig_Func | 
+          TTest1w_StErr_Func | 
+          TTest1w_t_Func | 
+          TTest1w_Upper_Func | 
+          TTest_Conf_Func | 
+          TTest_DF_Func | 
+          TTest_Dif_Func | 
+          TTest_Lower_Func | 
+          TTest_Sig_Func | 
+          TTest_StErr_Func | 
+          TTest_t_Func | 
+          TTest_Upper_Func | 
+          TTestw_Conf_Func | 
+          TTestw_DF_Func | 
+          TTestw_Dif_Func | 
+          TTestw_Lower_Func | 
+          TTestw_Sig_Func | 
+          TTestw_StErr_Func | 
+          TTestw_t_Func | 
+          TTestw_Upper_Func | 
+          Xirr_Func | 
+          Xnpv_Func | 
+          ZTest_Conf_Func | 
+          ZTest_Dif_Func | 
+          ZTest_Lower_Func | 
+          ZTest_Sig_Func | 
+          ZTest_StErr_Func | 
+          ZTest_Upper_Func | 
+          ZTest_z_Func | 
+          ZTestw_Conf_Func | 
+          ZTestw_Dif_Func | 
+          ZTestw_Lower_Func | 
+          ZTestw_Sig_Func | 
+          ZTestw_StErr_Func | 
+          ZTestw_Upper_Func | 
+          ZTestw_z_Func
+);
+
+
+
+Pi_Func= < ?RetType=num? ?func? ?FuncGroup=MATH? ?GroupList=MATH?  ?helpid=45057? 'Pi'  '(' >  ')';
+Null_Func= < ?RetType=dual? ?func? ?FuncGroup=MATH? ?GroupList=MATH,NULL?  ?helpid=45059? 'Null'  '(' >  ')';
+e_Func= < ?RetType=num? ?func? ?FuncGroup=MATH? ?GroupList=MATH?  ?helpid=45061? 'e'  '(' >  ')';
+True_Func= < ?RetType=dual? ?func? ?FuncGroup=MATH? ?GroupList=MATH,LOG?  ?helpid=45063? 'True'  '(' >  ')';
+False_Func= < ?RetType=dual? ?func? ?FuncGroup=MATH? ?GroupList=MATH,LOG?  ?helpid=45065? 'False'  '(' >  ')';
+DaylightSaving_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45067? 'DaylightSaving'  '(' >  ')';
+TimeZone_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45069? 'TimeZone'  '(' >  ')';
+Rand_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45071? 'Rand'  '(' >  ')';
+Pow_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45073? 'Pow'  '(' > ?Name=x? Expression ',' ?Name=y? Expression ')';
+Atan2_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45075? 'Atan2'  '(' > ?Name=y? Expression ',' ?Name=x? Expression ')';
+fMod_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45077? 'fMod'  '(' > ?Name=a? Expression ',' ?Name=b? Expression ')';
+Acos_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45079? 'Acos'  '(' > ?Name=x? Expression ')';
+Asin_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45081? 'Asin'  '(' > ?Name=x? Expression ')';
+Asinh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45083? 'Asinh'  '(' > ?Name=x? Expression ')';
+Atan_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45085? 'Atan'  '(' > ?Name=x? Expression ')';
+Acosh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45087? 'Acosh'  '(' > ?Name=x? Expression ')';
+Cos_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45089? 'Cos'  '(' > ?Name=x? Expression ')';
+Cosh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45091? 'Cosh'  '(' > ?Name=x? Expression ')';
+Exp_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45093? 'Exp'  '(' > ?Name=x? Expression ')';
+fAbs_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45095? 'fAbs'  '(' > ?Name=x? Expression ')';
+Floor_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45097? 'Floor'  '(' > ?Name=x? Expression[ ',' ?Name=step? Expression[ ',' ?Name=offset? Expression]] ')';
+Ceil_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45099? 'Ceil'  '(' > ?Name=x? Expression[ ',' ?Name=step? Expression[ ',' ?Name=offset? Expression]] ')';
+Round_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45101? 'Round'  '(' > ?Name=x? Expression[ ',' ?Name=step? Expression[ ',' ?Name=offset? Expression]] ')';
+PV_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45103? 'PV'  '(' > ?Name=rate? Expression ',' ?Name=nper? Expression ',' ?Name=pmt? Expression[ ',' ?Name=fv? Expression[ ',' ?Name=type? Expression]] ')';
+FV_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45105? 'FV'  '(' > ?Name=rate? Expression ',' ?Name=nper? Expression ',' ?Name=pmt? Expression[ ',' ?Name=pv? Expression[ ',' ?Name=type? Expression]] ')';
+Pmt_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45107? 'Pmt'  '(' > ?Name=rate? Expression ',' ?Name=nper? Expression ',' ?Name=pv? Expression[ ',' ?Name=fv? Expression[ ',' ?Name=type? Expression]] ')';
+nPer_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45109? 'nPer'  '(' > ?Name=rate? Expression ',' ?Name=pmt? Expression ',' ?Name=pv? Expression[ ',' ?Name=fv? Expression[ ',' ?Name=type? Expression]] ')';
+Rate_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45111? 'Rate'  '(' > ?Name=nper? Expression ',' ?Name=pmt? Expression ',' ?Name=pv? Expression[ ',' ?Name=fv? Expression[ ',' ?Name=type? Expression]] ')';
+Log_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45113? 'Log'  '(' > ?Name=x? Expression ')';
+Log10_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45115? 'Log10'  '(' > ?Name=x? Expression ')';
+Sin_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45117? 'Sin'  '(' > ?Name=x? Expression ')';
+Sinh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45119? 'Sinh'  '(' > ?Name=x? Expression ')';
+Sqrt_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45121? 'Sqrt'  '(' > ?Name=x? Expression ')';
+Sqr_Func= < ?RetType=num? ?func? ?FuncGroup=EXP? ?GroupList=EXP?  ?helpid=45123? 'Sqr'  '(' > ?Name=x? Expression ')';
+Atanh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45125? 'Atanh'  '(' > ?Name=x? Expression ')';
+Tan_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45127? 'Tan'  '(' > ?Name=x? Expression ')';
+Tanh_Func= < ?RetType=num? ?func? ?FuncGroup=TRIG? ?GroupList=TRIG?  ?helpid=45129? 'Tanh'  '(' > ?Name=x? Expression ')';
+Sign_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45131? 'Sign'  '(' > ?Name=x? Expression ')';
+Fact_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45133? 'Fact'  '(' > ?Name=x? Expression ')';
+Permut_Func= < ?RetType=int? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45135? 'Permut'  '(' > ?Name=p? Expression ',' ?Name=q? Expression ')';
+Combin_Func= < ?RetType=int? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45137? 'Combin'  '(' > ?Name=p? Expression ',' ?Name=q? Expression ')';
+Black_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45139? 'Black'  '(' > [?Name=alpha? Expression] ')';
+Blue_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45141? 'Blue'  '(' > [?Name=alpha? Expression] ')';
+Green_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45143? 'Green'  '(' > [?Name=alpha? Expression] ')';
+Cyan_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45145? 'Cyan'  '(' > [?Name=alpha? Expression] ')';
+Red_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45147? 'Red'  '(' > [?Name=alpha? Expression] ')';
+Magenta_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45149? 'Magenta'  '(' > [?Name=alpha? Expression] ')';
+Brown_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45151? 'Brown'  '(' > [?Name=alpha? Expression] ')';
+LightGray_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45153? 'LightGray'  '(' > [?Name=alpha? Expression] ')';
+DarkGray_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45155? 'DarkGray'  '(' > [?Name=alpha? Expression] ')';
+LightBlue_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45157? 'LightBlue'  '(' > [?Name=alpha? Expression] ')';
+LightGreen_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45159? 'LightGreen'  '(' > [?Name=alpha? Expression] ')';
+LightCyan_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45161? 'LightCyan'  '(' > [?Name=alpha? Expression] ')';
+LightRed_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45163? 'LightRed'  '(' > [?Name=alpha? Expression] ')';
+LightMagenta_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45165? 'LightMagenta'  '(' > [?Name=alpha? Expression] ')';
+Yellow_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45167? 'Yellow'  '(' > [?Name=alpha? Expression] ')';
+White_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45169? 'White'  '(' > [?Name=alpha? Expression] ')';
+QlikTechBlue_Func= < ?RetType=int? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45171? ?deprecated? 'QlikTechBlue'  '(' > [?Name=alpha? Expression] ')';
+QlikTechGray_Func= < ?RetType=int? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45173? ?deprecated? 'QlikTechGray'  '(' > [?Name=alpha? Expression] ')';
+RangeNpv_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN,RNG?  ?helpid=45175? 'RangeNpv'  '(' > ?Name=discount_rate? Expression ',' ?Name=value? Expression{',' Expression} ')';
+RangeIrr_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN,RNG?  ?helpid=45177? 'RangeIrr'  '(' > ?Name=value? Expression ',' ?Name=value? Expression{',' Expression} ')';
+RangeXnpv_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN,RNG?  ?helpid=45179? 'RangeXnpv'  '(' > ?Name=discount_rate? Expression ',' ?Name=values? Expression ',' ?Name=dates? Expression{',' Expression} ')';
+RangeXirr_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN,RNG?  ?helpid=45181? 'RangeXirr'  '(' > ?Name=values? Expression ',' ?Name=dates? Expression{',' Expression} ')';
+BlackAndSchole_Func= < ?RetType=num? ?func? ?FuncGroup=FIN? ?GroupList=FIN?  ?helpid=45183? 'BlackAndSchole'  '(' > ?Name=strike? Expression ',' ?Name=time_left? Expression ',' ?Name=underlying? Expression ',' ?Name=vol? Expression ',' ?Name=risk_free_rate? Expression ',' ?Name=call_or_put? Expression ')';
+RangeCorrel_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45185? 'RangeCorrel'  '(' > ?Name=x_values? Expression ',' ?Name=y_values? Expression{',' Expression} ')';
+ChiDist_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45187? 'ChiDist'  '(' > ?Name=value? Expression ',' ?Name=degrees_freedom? Expression ')';
+ChiInv_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45189? 'ChiInv'  '(' > ?Name=prob? Expression ',' ?Name=degrees_freedom? Expression ')';
+NormDist_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45191? 'NormDist'  '(' > ?Name=value? Expression[ ',' ?Name=mean? Expression[ ',' ?Name=standard_dev? Expression[ ',' ?Name=cumulative? Expression]]] ')';
+NormInv_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45193? 'NormInv'  '(' > ?Name=prob? Expression ',' ?Name=mean? Expression ',' ?Name=standard_dev? Expression ')';
+TDist_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45195? 'TDist'  '(' > ?Name=value? Expression ',' ?Name=degrees_freedom? Expression ',' ?Name=tails? Expression ')';
+TInv_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45197? 'TInv'  '(' > ?Name=prob? Expression ',' ?Name=degrees_freedom? Expression ')';
+FDist_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45199? 'FDist'  '(' > ?Name=value? Expression ',' ?Name=degrees_freedom1? Expression ',' ?Name=degrees_freedom2? Expression ')';
+FInv_Func= < ?RetType=num? ?func? ?FuncGroup=PROB? ?GroupList=PROB?  ?helpid=45201? 'FInv'  '(' > ?Name=prob? Expression ',' ?Name=degrees_freedom1? Expression ',' ?Name=degrees_freedom2? Expression ')';
+GeoBoundingBox_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45203? 'GeoBoundingBox'  '(' > ?Name=field_name? Expression ')';
+GeoReduceGeometry_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45205? 'GeoReduceGeometry'  '(' > ?Name=field_name? Expression[ ',' ?Name=value? Expression] ')';
+GeoProjectGeometry_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45207? 'GeoProjectGeometry'  '(' > ?Name=type? Expression ',' ?Name=field_name? Expression ')';
+GeoInvProjectGeometry_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45209? 'GeoInvProjectGeometry'  '(' > ?Name=type? Expression ',' ?Name=field_name? Expression ')';
+GeoProject_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45211? 'GeoProject'  '(' > ?Name=type? Expression ',' ?Name=field_name? Expression ')';
+GeoGetBoundingBox_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45213? 'GeoGetBoundingBox'  '(' > ?Name=field_name? Expression ')';
+GeoGetPolygonCenter_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45215? 'GeoGetPolygonCenter'  '(' > ?Name=field_name? Expression ')';
+GeoMakePoint_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45217? 'GeoMakePoint'  '(' > ?Name=lat_field_name? Expression ',' ?Name=lon_field_name? Expression ')';
+GeoAggrGeometry_Func= < ?RetType=str? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45219? 'GeoAggrGeometry'  '(' > ?Name=field_name? Expression ')';
+GeoCountVertex_Func= < ?RetType=int? ?func? ?FuncGroup=GEO? ?GroupList=GEO?  ?helpid=45221? 'GeoCountVertex'  '(' > ?Name=field_name? Expression ')';
+TTest_t_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45223? 'TTest_t'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression] ')';
+TTestw_t_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45225? 'TTestw_t'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45227? 'TTest_DF'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression] ')';
+TTestw_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45229? 'TTestw_DF'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45231? 'TTest_Sig'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression] ')';
+TTestw_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45233? 'TTestw_Sig'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45235? 'TTest_Dif'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression ')';
+TTestw_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45237? 'TTestw_Dif'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression ')';
+TTest_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45239? 'TTest_StErr'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression] ')';
+TTestw_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45241? 'TTestw_StErr'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45243? 'TTest_Conf'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression]] ')';
+TTestw_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45245? 'TTestw_Conf'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+TTest_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45247? 'TTest_Lower'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression]] ')';
+TTestw_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45249? 'TTestw_Lower'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+TTest_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45251? 'TTest_Upper'  '(' > ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression]] ')';
+TTestw_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45253? 'TTestw_Upper'  '(' > ?Name=weight? Expression ',' ?Name=grp? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=eq_var? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+TTest1_t_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45255? 'TTest1_t'  '(' > ?Name=value? Expression ')';
+TTest1w_t_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45257? 'TTest1w_t'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=weight_type? Expression] ')';
+TTest1_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45259? 'TTest1_DF'  '(' > ?Name=value? Expression ')';
+TTest1w_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45261? 'TTest1w_DF'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=weight_type? Expression] ')';
+TTest1_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45263? 'TTest1_Sig'  '(' > ?Name=value? Expression ')';
+TTest1w_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45265? 'TTest1w_Sig'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=weight_type? Expression] ')';
+TTest1_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45267? 'TTest1_Dif'  '(' > ?Name=value? Expression ')';
+TTest1w_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45269? 'TTest1w_Dif'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression ')';
+TTest1_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45271? 'TTest1_StErr'  '(' > ?Name=value? Expression ')';
+TTest1w_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45273? 'TTest1w_StErr'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=weight_type? Expression] ')';
+TTest1_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45275? 'TTest1_Conf'  '(' > ?Name=value? Expression[ ',' ?Name=sig? Expression] ')';
+TTest1w_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45277? 'TTest1w_Conf'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest1_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45279? 'TTest1_Lower'  '(' > ?Name=value? Expression[ ',' ?Name=sig? Expression] ')';
+TTest1w_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45281? 'TTest1w_Lower'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]] ')';
+TTest1_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45283? 'TTest1_Upper'  '(' > ?Name=value? Expression[ ',' ?Name=sig? Expression] ')';
+TTest1w_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45285? 'TTest1w_Upper'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]] ')';
+ZTest_z_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45287? 'ZTest_z'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression] ')';
+ZTestw_z_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45289? 'ZTestw_z'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=weight_type? Expression]] ')';
+ZTest_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45291? 'ZTest_Sig'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression] ')';
+ZTestw_Sig_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45293? 'ZTestw_Sig'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=weight_type? Expression]] ')';
+ZTest_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45295? 'ZTest_Dif'  '(' > ?Name=value? Expression[ ',' ?Name=UNUSED_sigma? Expression] ')';
+ZTestw_Dif_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45297? 'ZTestw_Dif'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=UNUSED_sigma? Expression] ')';
+ZTest_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45299? 'ZTest_StErr'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression] ')';
+ZTestw_StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45301? 'ZTestw_StErr'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=weight_type? Expression]] ')';
+ZTest_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45303? 'ZTest_Conf'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression]] ')';
+ZTestw_Conf_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45305? 'ZTestw_Conf'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+ZTest_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45307? 'ZTest_Lower'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression]] ')';
+ZTestw_Lower_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45309? 'ZTestw_Lower'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+ZTest_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45311? 'ZTest_Upper'  '(' > ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression]] ')';
+ZTestw_Upper_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45313? 'ZTestw_Upper'  '(' > ?Name=weight? Expression ',' ?Name=value? Expression[ ',' ?Name=sigma? Expression[ ',' ?Name=sig? Expression[ ',' ?Name=weight_type? Expression]]] ')';
+Chi2Test_p_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45315? 'Chi2Test_p'  '(' > ?Name=col? Expression ',' ?Name=row? Expression ',' ?Name=actual_value? Expression[ ',' ?Name=expected_value? Expression] ')';
+Chi2Test_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45317? 'Chi2Test_DF'  '(' > ?Name=col? Expression ',' ?Name=row? Expression ',' ?Name=actual_value? Expression[ ',' ?Name=expected_value? Expression] ')';
+Chi2Test_Chi2_Func= < ?RetType=num? ?aggr? ?FuncGroup=PROB? ?GroupList=PROB,AGGR?  ?helpid=45319? 'Chi2Test_Chi2'  '(' > ?Name=col? Expression ',' ?Name=row? Expression ',' ?Name=actual_value? Expression[ ',' ?Name=expected_value? Expression] ')';
+If_Func= < ?RetType=dual? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45322? 'If'  '(' > ?Name=condition? Expression ',' ?Name=then_expr? Expression[ ',' ?Name=else_expr? Expression] ')';
+Pick_Func= < ?RetType=dual? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45324? 'Pick'  '(' > ?Name=position? Expression{',' Expression} ')';
+Match_Func= < ?RetType=int? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45326? 'Match'  '(' > ?Name=text? Expression ',' ?Name=mask_expr1? Expression{',' Expression} ')';
+MixMatch_Func= < ?RetType=int? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45328? 'MixMatch'  '(' > ?Name=text? Expression ',' ?Name=mask_expr1? Expression{',' Expression} ')';
+WildMatch_Func= < ?RetType=int? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45330? 'WildMatch'  '(' > ?Name=text? Expression ',' ?Name=mask_expr1? Expression{',' Expression} ')';
+Alt_Func= < ?RetType=dual? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45332? 'Alt'  '(' > ?Name=expr1? Expression{',' Expression} ')';
+Coalesce_Func= < ?RetType=dual? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45334? 'Coalesce'  '(' > ?Name=expr1? Expression{',' Expression} ')';
+EmptyIsNull_Func= < ?RetType=dual? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45336? 'EmptyIsNull'  '(' > ?Name=expr1? Expression ')';
+Trim_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45338? 'Trim'  '(' > ?Name=text? Expression ')';
+LTrim_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45340? 'LTrim'  '(' > ?Name=text? Expression ')';
+RTrim_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45342? 'RTrim'  '(' > ?Name=text? Expression ')';
+PurgeChar_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45344? 'PurgeChar'  '(' > ?Name=text? Expression ',' ?Name=remove_chars? Expression ')';
+LevenshteinDist_Func= < ?RetType=int? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45346? 'LevenshteinDist'  '(' > ?Name=text1? Expression ',' ?Name=text2? Expression ')';
+KeepChar_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45348? 'KeepChar'  '(' > ?Name=text? Expression ',' ?Name=keep_chars? Expression ')';
+Left_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45350? 'Left'  '(' > ?Name=text? Expression ',' ?Name=count? Expression ')';
+Right_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45352? 'Right'  '(' > ?Name=text? Expression ',' ?Name=count? Expression ')';
+Mid_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45354? 'Mid'  '(' > ?Name=text? Expression ',' ?Name=start? Expression[ ',' ?Name=count? Expression] ')';
+SubField_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45356? 'SubField'  '(' > ?Name=text? Expression ',' ?Name=delimiter? Expression[ ',' ?Name=field_no? Expression] ')';
+TextBetween_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45358? 'TextBetween'  '(' > ?Name=text? Expression ',' ?Name=delimiter1? Expression ',' ?Name=delimiter2? Expression[ ',' ?Name=count? Expression] ')';
+Repeat_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45360? 'Repeat'  '(' > ?Name=text? Expression ',' ?Name=repeat_count? Expression ')';
+Chr_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45362? 'Chr'  '(' > ?Name=int? Expression ')';
+Class_Func= < ?RetType=str? ?func? ?FuncGroup=CND? ?GroupList=CND?  ?helpid=45364? 'Class'  '(' > ?Name=x? Expression ',' ?Name=class_width? Expression[ ',' ?Name=formal? Expression[ ',' ?Name=bias? Expression]] ')';
+Index_Func= < ?RetType=int? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45366? 'Index'  '(' > ?Name=text? Expression ',' ?Name=substring? Expression[ ',' ?Name=count? Expression] ')';
+FindOneOf_Func= < ?RetType=int? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45368? 'FindOneOf'  '(' > ?Name=text? Expression ',' ?Name=char_set? Expression[ ',' ?Name=count? Expression] ')';
+Len_Func= < ?RetType=int? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45370? 'Len'  '(' > ?Name=text? Expression ')';
+Mod_Func= < ?RetType=int? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45372? 'Mod'  '(' > ?Name=integer_number1? Expression ',' ?Name=integer_number2? Expression ')';
+Odd_Func= < ?RetType=bool? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45374? 'Odd'  '(' > ?Name=integer_number? Expression ')';
+Even_Func= < ?RetType=bool? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45376? 'Even'  '(' > ?Name=integer_number? Expression ')';
+UTC_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45378? 'UTC'  '(' > [?Name=realtime? Expression] ')';
+GMT_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45380? 'GMT'  '(' > [?Name=realtime? Expression] ')';
+Now_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45382? 'Now'  '(' > [?Name=timer_mode? Expression] ')';
+Today_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45384? 'Today'  '(' > [?Name=timer_mode? Expression] ')';
+ElapsedSeconds_Func= < ?RetType=num? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45386? 'ElapsedSeconds'  '(' >  ')';
+Hour_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45388? 'Hour'  '(' > ?Name=timestamp? Expression ')';
+Minute_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45390? 'Minute'  '(' > ?Name=timestamp? Expression ')';
+Second_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45392? 'Second'  '(' > ?Name=timestamp? Expression ')';
+Frac_Func= < ?RetType=num? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45394? 'Frac'  '(' > ?Name=timestamp? Expression ')';
+Div_Func= < ?RetType=int? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45396? 'Div'  '(' > ?Name=integer_number1? Expression ',' ?Name=integer_number2? Expression ')';
+Dual_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45398? 'Dual'  '(' > ?Name=text? Expression ',' ?Name=number? Expression ')';
+BitCount_Func= < ?RetType=int? ?func? ?FuncGroup=NUM? ?GroupList=NUM?  ?helpid=45400? 'BitCount'  '(' > ?Name=integer_number? Expression ')';
+Ord_Func= < ?RetType=int? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45402? 'Ord'  '(' > ?Name=char? Expression ')';
+Upper_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45404? 'Upper'  '(' > ?Name=text? Expression ')';
+ApplyCodepage_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45406? 'ApplyCodepage'  '(' > ?Name=text? Expression ',' ?Name=codepage? Expression ')';
+Lower_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45408? 'Lower'  '(' > ?Name=text? Expression ')';
+Capitalize_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45410? 'Capitalize'  '(' > ?Name=text? Expression ')';
+RGB_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45412? 'RGB'  '(' > ?Name=r_value? Expression ',' ?Name=g_value? Expression ',' ?Name=b_value? Expression ')';
+ARGB_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45414? 'ARGB'  '(' > ?Name=alpha_value? Expression ',' ?Name=r_value? Expression ',' ?Name=g_value? Expression ',' ?Name=b_value? Expression ')';
+HSL_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45416? 'HSL'  '(' > ?Name=hue? Expression ',' ?Name=saturation? Expression ',' ?Name=luminosity? Expression ')';
+Color_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45418? 'Color'  '(' > ?Name=palette_index? Expression ')';
+SysColor_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45420? ?deprecated? 'SysColor'  '(' > ?Name=sys_index? Expression ')';
+ColorMix1_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45422? 'ColorMix1'  '(' > ?Name=ValueBetweenZeroAndOne? Expression ',' ?Name=ColorZero? Expression ',' ?Name=ColorOne? Expression ')';
+ColorMix2_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45424? 'ColorMix2'  '(' > ?Name=ValueBetweenMinusOneAndOne? Expression ',' ?Name=ColorMinusOne? Expression ',' ?Name=ColorOne? Expression[ ',' ?Name=ColorZero? Expression] ')';
+ColorMapJet_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45426? 'ColorMapJet'  '(' > ?Name=ValueBetweenZeroAndOne? Expression ')';
+ColorMapHue_Func= < ?RetType=int? ?func? ?FuncGroup=CLR? ?GroupList=CLR?  ?helpid=45428? 'ColorMapHue'  '(' > ?Name=ValueBetweenZeroAndOne? Expression ')';
+IsNull_Func= < ?RetType=bool? ?func? ?FuncGroup=NULL? ?GroupList=NULL,LOG?  ?helpid=45430? 'IsNull'  '(' > ?Name=expr? Expression ')';
+IsNum_Func= < ?RetType=bool? ?func? ?FuncGroup=LOG? ?GroupList=LOG?  ?helpid=45432? 'IsNum'  '(' > ?Name=expr? Expression ')';
+IsText_Func= < ?RetType=bool? ?func? ?FuncGroup=LOG? ?GroupList=LOG?  ?helpid=45434? 'IsText'  '(' > ?Name=expr? Expression ')';
+RecNo_Func= < ?RetType=int? ?func? ?FuncGroup=COUNT? ?GroupList=COUNT?  ?helpid=45436? 'RecNo'  '(' >  ')';
+IterNo_Func= < ?RetType=int? ?func? ?FuncGroup=COUNT? ?GroupList=COUNT?  ?helpid=45437? 'IterNo'  '(' >  ')';
+NoOfRows_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45438? 'NoOfRows'  '(' > ?Name=table_name? Expression ')';
+NoOfFields_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45439? 'NoOfFields'  '(' > ?Name=table_name? Expression ')';
+FieldName_Func= < ?RetType=str? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45440? 'FieldName'  '(' > ?Name=field_number? Expression ',' ?Name=table_name? Expression ')';
+FieldNumber_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45441? 'FieldNumber'  '(' > ?Name=field_name? Expression ',' ?Name=table_name? Expression ')';
+RowNo_Func= < ?RetType=int? ?func? ?FuncGroup=RCRD? ?GroupList=RCRD?  ?helpid=45442? 'RowNo'  '(' > ['TOTAL'] ')';
+Timestamp_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45450? 'Timestamp'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression] ')';
+Date_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45452? 'Date'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression] ')';
+Time_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45454? 'Time'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression] ')';
+Interval_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45456? 'Interval'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression] ')';
+Num_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45458? 'Num'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression[ ',' ?Name=dec_sep? Expression[ ',' ?Name=thou_sep? Expression]]] ')';
+Money_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45460? 'Money'  '(' > ?Name=number? Expression[ ',' ?Name=format? Expression[ ',' ?Name=dec_sep? Expression[ ',' ?Name=thou_sep? Expression]]] ')';
+Text_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45462? 'Text'  '(' > ?Name=expr? Expression ')';
+Timestamp#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45464? 'Timestamp#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression] ')';
+Date#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45466? 'Date#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression] ')';
+Time#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45468? 'Time#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression] ')';
+Interval#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45470? 'Interval#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression] ')';
+Num#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45472? 'Num#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression[ ',' ?Name=dec_sep? Expression[ ',' ?Name=thou_sep? Expression]]] ')';
+Money#_Func= < ?RetType=dual? ?func? ?FuncGroup=NUMI? ?GroupList=NUMI?  ?helpid=45474? 'Money#'  '(' > ?Name=text? Expression[ ',' ?Name=format? Expression[ ',' ?Name=dec_sep? Expression[ ',' ?Name=thou_sep? Expression]]] ')';
+Month_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45476? 'Month'  '(' > ?Name=timestamp? Expression ')';
+Day_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45478? 'Day'  '(' > ?Name=timestamp? Expression ')';
+Week_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45480? 'Week'  '(' > ?Name=timestamp? Expression[ ',' ?Name=first_week_day? Expression[ ',' ?Name=broken_weeks? Expression[ ',' ?Name=reference_day? Expression]]] ')';
+WeekDay_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45482? 'WeekDay'  '(' > ?Name=timestamp? Expression[ ',' ?Name=first_week_day? Expression] ')';
+WeekYear_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45484? 'WeekYear'  '(' > ?Name=timestamp? Expression[ ',' ?Name=first_week_day? Expression[ ',' ?Name=broken_weeks? Expression[ ',' ?Name=reference_day? Expression]]] ')';
+Year_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45486? 'Year'  '(' > ?Name=timestamp? Expression ')';
+Age_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45488? 'Age'  '(' > ?Name=timestamp? Expression ',' ?Name=date_of_birth? Expression ')';
+NetWorkDays_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45490? 'NetWorkDays'  '(' > ?Name=start_date? Expression ',' ?Name=end_date? Expression[ ',' ?Name=holiday? Expression{',' Expression}] ')';
+LastWorkDate_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45492? 'LastWorkDate'  '(' > ?Name=start_date? Expression ',' ?Name=no_of_workdays? Expression[ ',' ?Name=holiday? Expression{',' Expression}] ')';
+FirstWorkDate_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45494? 'FirstWorkDate'  '(' > ?Name=end_date? Expression ',' ?Name=no_of_workdays? Expression[ ',' ?Name=holiday? Expression{',' Expression}] ')';
+MakeDate_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45496? 'MakeDate'  '(' > ?Name=year_number? Expression[ ',' ?Name=month_number? Expression[ ',' ?Name=day_number? Expression]] ')';
+MakeWeekDate_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45498? 'MakeWeekDate'  '(' > ?Name=weekyear_number? Expression ',' ?Name=week_number? Expression[ ',' ?Name=weekday_number? Expression] ')';
+AddMonths_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45500? 'AddMonths'  '(' > ?Name=date? Expression ',' ?Name=no_of_months? Expression[ ',' ?Name=mode? Expression] ')';
+AddYears_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45502? 'AddYears'  '(' > ?Name=date? Expression ',' ?Name=no_of_years? Expression ')';
+MakeTime_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45504? 'MakeTime'  '(' > ?Name=hour? Expression[ ',' ?Name=minute? Expression[ ',' ?Name=second? Expression]] ')';
+NumSum_Func= < ?RetType=num? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45506? ?deprecated? 'NumSum'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+NumMin_Func= < ?RetType=num? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45508? ?deprecated? 'NumMin'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+NumMax_Func= < ?RetType=num? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45510? ?deprecated? 'NumMax'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+NumAvg_Func= < ?RetType=num? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45512? ?deprecated? 'NumAvg'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+NumCount_Func= < ?RetType=int? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45514? ?deprecated? 'NumCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeNumericCount_Func= < ?RetType=int? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45516? 'RangeNumericCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeSum_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45518? 'RangeSum'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMin_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45520? 'RangeMin'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMax_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45522? 'RangeMax'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeAvg_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45524? 'RangeAvg'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeStDev_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45526? 'RangeStDev'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeSkew_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45528? 'RangeSkew'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeKurtosis_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45530? 'RangeKurtosis'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeNullCount_Func= < ?RetType=int? ?func? ?FuncGroup=RNG? ?GroupList=RNG,NULL?  ?helpid=45532? 'RangeNullCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeTextCount_Func= < ?RetType=int? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45534? 'RangeTextCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMissingCount_Func= < ?RetType=int? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45536? 'RangeMissingCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeCount_Func= < ?RetType=int? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45538? 'RangeCount'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeOnly_Func= < ?RetType=dual? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45540? 'RangeOnly'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMinString_Func= < ?RetType=str? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45542? 'RangeMinString'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMaxString_Func= < ?RetType=str? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45544? 'RangeMaxString'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeMode_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45546? 'RangeMode'  '(' > ?Name=first_expr? Expression{',' Expression} ')';
+RangeFractile_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45548? 'RangeFractile'  '(' > ?Name=fractile? Expression ',' ?Name=first_expr? Expression{',' Expression} ')';
+RangeFractileExc_Func= < ?RetType=num? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45550? 'RangeFractileExc'  '(' > ?Name=fractile? Expression ',' ?Name=first_expr? Expression{',' Expression} ')';
+Previous_Func= < ?RetType=dual? ?func? ?FuncGroup=RNG? ?GroupList=RNG?  ?helpid=45552? 'Previous'  '(' > ?Name=expr? Expression ')';
+Peek_Func= < ?RetType=dual? ?func? ?FuncGroup=RCRD? ?GroupList=RCRD?  ?helpid=45557? 'Peek'  '(' > ?Name=field_name? Expression[ ',' ?Name=row_no? Expression[ ',' ?Name=table_name? Expression]] ')';
+Lookup_Func= < ?RetType=dual? ?func? ?FuncGroup=RCRD? ?GroupList=RCRD?  ?helpid=45558? 'Lookup'  '(' > ?Name=field_name? Expression ',' ?Name=match_field_name? Expression ',' ?Name=match_field_value? Expression[ ',' ?Name=table_name? Expression] ')';
+Exists_Func= < ?RetType=bool? ?func? ?FuncGroup=RCRD? ?GroupList=RCRD?  ?helpid=45570? 'Exists'  '(' > ?Name=field_name? Expression[ ',' ?Name=expr? Expression] ')';
+FieldValue_Func= < ?RetType=dual? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45572? 'FieldValue'  '(' > ?Name=field_name? Expression ',' ?Name=elem_no? Expression ')';
+FieldValueCount_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45574? 'FieldValueCount'  '(' > ?Name=field_name? Expression ')';
+FieldIndex_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45576? 'FieldIndex'  '(' > ?Name=field_name? Expression ',' ?Name=value? Expression ')';
+FieldElemNo_Func= < ?RetType=int? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45578? 'FieldElemNo'  '(' > ?Name=field_name? Expression ')';
+AutoNumber_Func= < ?RetType=int? ?func? ?FuncGroup=COUNT? ?GroupList=COUNT?  ?helpid=45588? 'AutoNumber'  '(' > ?Name=expr? Expression[ ',' ?Name=id? Expression] ')';
+AutoNumberHash128_Func= < ?RetType=int? ?func? ?FuncGroup=COUNT? ?GroupList=COUNT?  ?helpid=45589? 'AutoNumberHash128'  '(' > ?Name=expr? Expression{',' Expression} ')';
+AutoNumberHash256_Func= < ?RetType=int? ?func? ?FuncGroup=COUNT? ?GroupList=COUNT?  ?helpid=45590? 'AutoNumberHash256'  '(' > ?Name=expr? Expression{',' Expression} ')';
+Hash128_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45591? 'Hash128'  '(' > ?Name=expr? Expression{',' Expression} ')';
+Hash160_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45593? 'Hash160'  '(' > ?Name=expr? Expression{',' Expression} ')';
+Hash256_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45595? 'Hash256'  '(' > ?Name=expr? Expression{',' Expression} ')';
+ApplyMap_Func= < ?RetType=dual? ?func? ?FuncGroup=MAPP? ?GroupList=MAPP?  ?helpid=45597? 'ApplyMap'  '(' > ?Name=map_id? Expression ',' ?Name=expr? Expression[ ',' ?Name=default_mapping? Expression] ')';
+MapSubString_Func= < ?RetType=str? ?func? ?FuncGroup=MAPP? ?GroupList=MAPP?  ?helpid=45598? 'MapSubString'  '(' > ?Name=map_id? Expression ',' ?Name=text? Expression ')';
+Replace_Func= < ?RetType=str? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45599? 'Replace'  '(' > ?Name=text? Expression ',' ?Name=from_str? Expression ',' ?Name=to_str? Expression ')';
+SubStringCount_Func= < ?RetType=num? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45601? 'SubStringCount'  '(' > ?Name=text? Expression ',' ?Name=sub_string? Expression ')';
+Evaluate_Func= < ?RetType=dual? ?func? ?FuncGroup=STR? ?GroupList=STR?  ?helpid=45603? 'Evaluate'  '(' > ?Name=expression_text? Expression ')';
+OSUser_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45604? 'OSUser'  '(' >  ')';
+GetDataModelHash_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45606? 'GetDataModelHash'  '(' >  ')';
+DocumentPath_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45608? 'DocumentPath'  '(' >  ')';
+DocumentName_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45610? 'DocumentName'  '(' >  ')';
+DocumentTitle_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45612? 'DocumentTitle'  '(' >  ')';
+NoOfTables_Func= < ?RetType=num? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45614? 'NoOfTables'  '(' >  ')';
+TableName_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45615? 'TableName'  '(' > ?Name=table_number? Expression ')';
+TableNumber_Func= < ?RetType=num? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45616? 'TableNumber'  '(' > ?Name=table_name? Expression ')';
+GetCollationLocale_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45617? 'GetCollationLocale'  '(' >  ')';
+QlikViewVersion_Func= < ?RetType=str? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45619? ?deprecated? 'QlikViewVersion'  '(' >  ')';
+ProductVersion_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45621? 'ProductVersion'  '(' >  ')';
+EngineVersion_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45623? 'EngineVersion'  '(' >  ')';
+QVUser_Func= < ?RetType=str? ?func? ?FuncGroup=LEG? ?GroupList=LEG?  ?helpid=45625? ?deprecated? 'QVUser'  '(' >  ')';
+ComputerName_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45627? 'ComputerName'  '(' >  ')';
+Author_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45629? 'Author'  '(' >  ')';
+ReloadTime_Func= < ?RetType=dual? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45631? 'ReloadTime'  '(' >  ')';
+GetObjectField_Func= < ?RetType=str? ?func? ?FuncGroup=TBL? ?GroupList=TBL?  ?helpid=45633? 'GetObjectField'  '(' > [?Name=index? Expression[ ',' ?Name=objectid? Expression]] ')';
+ClientPlatform_Func= < ?RetType=str? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45637? 'ClientPlatform'  '(' >  ')';
+DayNumberOfYear_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45641? 'DayNumberOfYear'  '(' > ?Name=timestamp? Expression[ ',' ?Name=start_month? Expression] ')';
+DayNumberOfQuarter_Func= < ?RetType=int? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45643? 'DayNumberOfQuarter'  '(' > ?Name=timestamp? Expression[ ',' ?Name=start_month? Expression] ')';
+Year2Date_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45645? ?deprecated? 'Year2Date'  '(' > ?Name=timestamp? Expression[ ',' ?Name=year_offset? Expression[ ',' ?Name=start_month? Expression[ ',' ?Name=ref_timestamp? Expression]]] ')';
+YearToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45647? 'YearToDate'  '(' > ?Name=timestamp? Expression[ ',' ?Name=year_offset? Expression[ ',' ?Name=start_month? Expression[ ',' ?Name=ref_timestamp? Expression]]] ')';
+InYear_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45649? 'InYear'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InYearToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45651? 'InYearToDate'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InQuarter_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45653? 'InQuarter'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InQuarterToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45655? 'InQuarterToDate'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InMonth_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45657? 'InMonth'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InMonthToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45659? 'InMonthToDate'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InMonths_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45661? 'InMonths'  '(' > ?Name=n_months? Expression ',' ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InMonthsToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45663? 'InMonthsToDate'  '(' > ?Name=n_months? Expression ',' ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression] ')';
+InWeek_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45665? 'InWeek'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression] ')';
+InWeekToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45667? 'InWeekToDate'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression] ')';
+InLunarWeek_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45669? 'InLunarWeek'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression] ')';
+InLunarWeekToDate_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45671? 'InLunarWeekToDate'  '(' > ?Name=timestamp? Expression ',' ?Name=base_date? Expression ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression] ')';
+InDay_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45673? 'InDay'  '(' > ?Name=timestamp? Expression ',' ?Name=base_timestamp? Expression ',' ?Name=period_no? Expression[ ',' ?Name=day_start? Expression] ')';
+InDayToTime_Func= < ?RetType=bool? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45675? 'InDayToTime'  '(' > ?Name=timestamp? Expression ',' ?Name=base_timestamp? Expression ',' ?Name=period_no? Expression[ ',' ?Name=day_start? Expression] ')';
+YearStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45677? 'YearStart'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+QuarterStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45679? 'QuarterStart'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+MonthStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45681? 'MonthStart'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression] ')';
+MonthsStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45683? 'MonthsStart'  '(' > ?Name=n_months? Expression ',' ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+WeekStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45685? 'WeekStart'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression]] ')';
+LunarWeekStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45687? 'LunarWeekStart'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression]] ')';
+DayStart_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45689? 'DayStart'  '(' > ?Name=time? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=day_start? Expression]] ')';
+YearEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45691? 'YearEnd'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+QuarterEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45693? 'QuarterEnd'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+MonthEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45695? 'MonthEnd'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression] ')';
+MonthsEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45697? 'MonthsEnd'  '(' > ?Name=n_months? Expression ',' ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+WeekEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45699? 'WeekEnd'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression]] ')';
+LunarWeekEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45701? 'LunarWeekEnd'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression]] ')';
+DayEnd_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45703? 'DayEnd'  '(' > ?Name=time? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=day_start? Expression]] ')';
+YearName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45705? 'YearName'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+QuarterName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45707? 'QuarterName'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+MonthName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45709? 'MonthName'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression] ')';
+MonthsName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45711? 'MonthsName'  '(' > ?Name=n_months? Expression ',' ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_month_of_year? Expression]] ')';
+WeekName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45713? 'WeekName'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression[ ',' ?Name=broken_weeks? Expression[ ',' ?Name=reference_day? Expression]]]] ')';
+LunarWeekName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45715? 'LunarWeekName'  '(' > ?Name=date? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=first_week_day? Expression]] ')';
+DayName_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45717? 'DayName'  '(' > ?Name=time? Expression[ ',' ?Name=period_no? Expression[ ',' ?Name=day_start? Expression]] ')';
+SetDateYear_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45719? 'SetDateYear'  '(' > ?Name=timestamp? Expression ',' ?Name=year? Expression ')';
+SetDateYearMonth_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45721? 'SetDateYearMonth'  '(' > ?Name=timestamp? Expression ',' ?Name=year? Expression ',' ?Name=month? Expression ')';
+LocalTime_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45723? 'LocalTime'  '(' > [?Name=place? Expression[ ',' ?Name=ignore_dst? Expression]] ')';
+ConvertToLocalTime_Func= < ?RetType=dual? ?func? ?FuncGroup=DATE? ?GroupList=DATE?  ?helpid=45725? 'ConvertToLocalTime'  '(' > ?Name=timestamp? Expression[ ',' ?Name=place? Expression[ ',' ?Name=ignore_dst? Expression]] ')';
+QvdCreateTime_Func= < ?RetType=num? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45727? 'QvdCreateTime'  '(' > ?Name=qvd_file_name? Expression ')';
+QvdNoOfRecords_Func= < ?RetType=num? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45728? 'QvdNoOfRecords'  '(' > ?Name=qvd_file_name? Expression ')';
+QvdNoOfFields_Func= < ?RetType=num? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45729? 'QvdNoOfFields'  '(' > ?Name=qvd_file_name? Expression ')';
+QvdFieldName_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45730? 'QvdFieldName'  '(' > ?Name=qvd_file_name? Expression ',' ?Name=field_no? Expression ')';
+QvdTableName_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45731? 'QvdTableName'  '(' > ?Name=qvd_file_name? Expression ')';
+FileTime_Func= < ?RetType=num? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45732? 'FileTime'  '(' > [?Name=file_name? Expression] ')';
+FileSize_Func= < ?RetType=int? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45733? 'FileSize'  '(' > [?Name=file_name? Expression] ')';
+Attribute_Func= < ?RetType=dual? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45736? 'Attribute'  '(' > ?Name=file_name? Expression ',' ?Name=attribute_name? Expression ')';
+FilePath_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45737? 'FilePath'  '(' > [?Name=file_name? Expression] ')';
+FileName_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45738? 'FileName'  '(' > [?Name=file_name? Expression] ')';
+FileDir_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45739? 'FileDir'  '(' > [?Name=file_name? Expression] ')';
+GetFolderPath_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45740? ?deprecated? 'GetFolderPath'  '(' > [?Name=folder? Expression] ')';
+FileBaseName_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45741? 'FileBaseName'  '(' > [?Name=file_name? Expression] ')';
+FileExtension_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45742? 'FileExtension'  '(' > [?Name=file_name? Expression] ')';
+IsPartialReload_Func= < ?RetType=bool? ?func? ?FuncGroup=SYS? ?GroupList=SYS?  ?helpid=45743? 'IsPartialReload'  '(' >  ')';
+ConnectString_Func= < ?RetType=str? ?func? ?FuncGroup=FILE? ?GroupList=FILE?  ?helpid=45744? 'ConnectString'  '(' >  ')';
+Sum_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45748? 'Sum'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+Min_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45750? 'Min'  '(' > ?Name=expr? Expression[ ',' ?Name=rank? Expression] ')';
+Max_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45752? 'Max'  '(' > ?Name=expr? Expression[ ',' ?Name=rank? Expression] ')';
+Avg_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45754? 'Avg'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+StDev_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45756? 'StDev'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+Skew_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45758? 'Skew'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+Kurtosis_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45760? 'Kurtosis'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+NumericCount_Func= < ?RetType=int? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45762? 'NumericCount'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+NullCount_Func= < ?RetType=int? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45764? 'NullCount'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+TextCount_Func= < ?RetType=int? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45766? 'TextCount'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+Count_Func= < ?RetType=int? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45768? 'Count'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+MissingCount_Func= < ?RetType=int? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45770? 'MissingCount'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+MinString_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45772? 'MinString'  '(' > ?Name=expr? Expression ')';
+MaxString_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45774? 'MaxString'  '(' > ?Name=expr? Expression ')';
+Only_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45776? 'Only'  '(' > ?Name=expr? Expression ')';
+Mode_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45778? 'Mode'  '(' > ?Name=expr? Expression ')';
+Fractile_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45780? 'Fractile'  '(' > ['TOTAL']['ALL']['DISTINCT']?Name=expr? Expression ',' ?Name=fraction? Expression ')';
+Median_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45782? 'Median'  '(' > ['TOTAL']['ALL']['DISTINCT']?Name=expr? Expression ')';
+FirstValue_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45784? 'FirstValue'  '(' > ?Name=expr? Expression ')';
+LastValue_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45785? 'LastValue'  '(' > ?Name=expr? Expression ')';
+StErr_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45786? 'StErr'  '(' > ['DISTINCT']?Name=expr? Expression ')';
+FractileExc_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45788? 'FractileExc'  '(' > ['TOTAL']['ALL']['DISTINCT']?Name=expr? Expression ',' ?Name=fraction? Expression ')';
+Concat_Func= < ?RetType=str? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45790? 'Concat'  '(' > ['DISTINCT']['TOTAL']?Name=string? Expression[ ',' ?Name=delimiter? Expression[ ',' ?Name=sort_weight? Expression]] ')';
+FirstSortedValue_Func= < ?RetType=dual? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45792? 'FirstSortedValue'  '(' > ['DISTINCT']['ALL']['TOTAL']?Name=value? Expression ',' ?Name=sort_weight? Expression[ ',' ?Name=rank? Expression] ')';
+Npv_Func= < ?RetType=num? ?aggr? ?FuncGroup=FIN? ?GroupList=FIN,AGGR?  ?helpid=45798? 'Npv'  '(' > ?Name=discount_rate? Expression ',' ?Name=value? Expression ')';
+Irr_Func= < ?RetType=num? ?aggr? ?FuncGroup=FIN? ?GroupList=FIN,AGGR?  ?helpid=45799? 'Irr'  '(' > ?Name=value? Expression ')';
+Xnpv_Func= < ?RetType=num? ?aggr? ?FuncGroup=FIN? ?GroupList=FIN,AGGR?  ?helpid=45800? 'Xnpv'  '(' > ?Name=discount_rate? Expression ',' ?Name=pmt? Expression ',' ?Name=date? Expression ')';
+Xirr_Func= < ?RetType=num? ?aggr? ?FuncGroup=FIN? ?GroupList=FIN,AGGR?  ?helpid=45801? 'Xirr'  '(' > ?Name=pmt? Expression ',' ?Name=date? Expression ')';
+Correl_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45804? 'Correl'  '(' > ['TOTAL']?Name=value1? Expression ',' ?Name=value2? Expression ')';
+StEYX_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45806? 'StEYX'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression ')';
+LinEst_B_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45808? 'LinEst_B'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_DF_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45810? 'LinEst_DF'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_F_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45812? 'LinEst_F'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_M_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45814? 'LinEst_M'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_R2_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45816? 'LinEst_R2'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_SEB_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45818? 'LinEst_SEB'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_SEM_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45820? 'LinEst_SEM'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_SEY_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45822? 'LinEst_SEY'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_SSReg_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45824? 'LinEst_SSReg'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+LinEst_SSResid_Func= < ?RetType=num? ?aggr? ?FuncGroup=AGGR? ?GroupList=AGGR?  ?helpid=45826? 'LinEst_SSResid'  '(' > ['TOTAL']?Name=y_value? Expression ',' ?Name=x_value? Expression[ ',' ?Name=y0_const? Expression[ ',' ?Name=x0_const? Expression]] ')';
+
+
+
+

@@ -14,13 +14,13 @@ ButlerSpyglass:
 
   lineage:
     enableLineageExtract: true
-    lineageFolder: ./out/lineage
+    exportDir: ./out/lineage
     maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
     maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
 
   script:
     enableScriptExtract: true
-    scriptFolder: ./out/script
+    exportDir: ./out/script
 
   configEngine:
     engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019 
