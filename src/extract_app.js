@@ -16,8 +16,8 @@ const readCert = (filename) => fs.readFileSync(filename);
 //  Engine config
 const configEngine = {
     engineVersion: config.get('ButlerSpyglass.configEngine.engineVersion'),
-    host: config.get('ButlerSpyglass.configEngine.server'),
-    port: config.get('ButlerSpyglass.configEngine.serverPort'),
+    host: config.get('ButlerSpyglass.configEngine.host'),
+    port: config.get('ButlerSpyglass.configEngine.port'),
     isSecure: config.get('ButlerSpyglass.configEngine.useSSL'),
     headers: config.get('ButlerSpyglass.configEngine.headers'),
     ca: readCert(config.get('ButlerSpyglass.cert.clientCertCA')),
@@ -40,7 +40,7 @@ module.exports.resetExtractedAppCount = () => {
 module.exports.appExtractMetadata = async function appExtractMetadata(worker, queue, appToExtract, cb) {
     // const lineageFileWriter = createCsvWriter({
     //     path: path.resolve(
-    //         path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/lineage.csv`)
+    //         path.normalize(`${config.get('ButlerSpyglass.lineageExtract.exportDir')}/lineage.csv`)
     //     ),
     //     header: [
     //         {
@@ -114,7 +114,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
         return;
     }
 
-    if (config.get('ButlerSpyglass.lineage.enableLineageExtract') === true) {
+    if (config.get('ButlerSpyglass.lineageExtract.enable') === true) {
         try {
             const lineageCurrentApp = [];
 
@@ -124,7 +124,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
 
             // Create CSV write for storing current app's lineage to disk
             const lineageCurrentAppWriter = createCsvWriter({
-                path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/${appToExtract.qDocId}.csv`)),
+                path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineageExtract.exportDir')}/${appToExtract.qDocId}.csv`)),
                 header: [
                     {
                         id: 'appId',
@@ -163,8 +163,8 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
                     lineageCurrentApp.push({
                         appId: appToExtract.qDocId,
                         appName: appToExtract.qDocName,
-                        discriminator: el.qDiscriminator.substring(0, config.get('ButlerSpyglass.lineage.maxLengthDiscriminator')),
-                        statement: el.qStatement.substring(0, config.get('ButlerSpyglass.lineage.maxLengthStatement')),
+                        discriminator: el.qDiscriminator.substring(0, config.get('ButlerSpyglass.lineageExtract.maxLengthDiscriminator')),
+                        statement: el.qStatement.substring(0, config.get('ButlerSpyglass.lineageExtract.maxLengthStatement')),
                     });
                 });
             }
@@ -188,7 +188,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
             // Then as JSON
             try {
                 fs.writeFileSync(
-                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/${appToExtract.qDocId}.json`)),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineageExtract.exportDir')}/${appToExtract.qDocId}.json`)),
                     JSON.stringify(lineageCurrentApp, 0, 2)
                 );
                 logger.logger.verbose(`Done writing script for app ID ${appToExtract.qDocId} to disk`);
@@ -207,7 +207,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
         }
     }
 
-    if (config.get('ButlerSpyglass.script.enableScriptExtract') === true) {
+    if (config.get('ButlerSpyglass.scriptExtract.enable') === true) {
         try {
             const script = await app.getScript();
             logger.logger.debug(`getScript success for appId: ${appToExtract.qDocId}`);
@@ -216,7 +216,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(worker, qu
             // Save current app's script to disk file. Sync writing to keep things simple.
             try {
                 fs.writeFileSync(
-                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.script.exportDir')}/${appToExtract.qDocId}.qvs`)),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.scriptExtract.exportDir')}/${appToExtract.qDocId}.qvs`)),
                     script
                 );
                 logger.logger.verbose(`Done writing script for app ID ${appToExtract.qDocId} to disk`);

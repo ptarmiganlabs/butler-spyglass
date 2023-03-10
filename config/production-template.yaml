@@ -1,36 +1,51 @@
 ---
 ButlerSpyglass:
   # Logging configuration
-  logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
-  fileLogging: true       # true/false to enable/disable logging to disk file
-  logDirectory: logs      # Subdirectory where log files are stored
+  logLevel: info                    # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+  fileLogging: true                 # true/false to enable/disable logging to disk file
+  logDirectory: ./log               # Subdirectory where log files are stored. Either absolute path or relative to where Butler Spyglass was started
 
   # Extract configuration
-  extractFrequency: 60000     # Time between extraction runs. Milliseconds
-  extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
-  extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
-  concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
-  enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
+  extract:
+    frequency: 60000000             # Time between extraction runs. Milliseconds
+    itemInterval: 250               # Time between requests to the engine API. Milliseconds
+    itemTimeout: 15000              # Timeout for calls to the engine API. Milliseconds
+    concurrentTasks: 3              # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
+    enableScheduledExecution: true  # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
 
-  lineage:
-    enableLineageExtract: true
-    exportDir: ./out/lineage
-    maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
-    maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
+  lineageExtract:
+    enable: true                    # Should data lineage files be created?
+    exportDir: ./out/lineage        # Directory where data lineage files will be stored.
+    maxLengthDiscriminator: 1000    # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
+    maxLengthStatement: 1000        # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
 
-  script:
-    enableScriptExtract: true
-    exportDir: ./out/script
+  scriptExtract:
+    enable: true                    # Should app load scripts be saved to files?
+    exportDir: ./out/script         # Directory where load script files will be stored.
+
+  dataConnectionExtract:
+    enable: true                    # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
+    exportDir: ./out/dataconnection # Directory where data connection JSON definitions file will be stored.
 
   configEngine:
-    engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019 
-    server: <Fully qualified domain name of Qlik Sense Enterprise server from which data should be retrieved>
-    serverPort: 4747
-    isSecure: true
+    engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
+    host: 192.168.100.109
+    port: 4747
+    useSSL: true
     headers:
       X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
-    ca: /path/to/certificate/experted/from/sense/root.pem
-    cert: /path/to/certificate/experted/from/sense/client.pem
-    key: /path/to/certificate/experted/from/sense/client_key.pem
     rejectUnauthorized: false
 
+  configQRS: 
+    authentication: certificates
+    host: 192.168.100.109
+    port: 4242
+    useSSL: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+
+  # Certificates to use when connecting to Sense. Get these from the Certificate Export in QMC.
+  cert:
+    clientCert: /Users/goran/code/secret/pro2win1-nopwd/client.pem
+    clientCertKey: /Users/goran/code/secret/pro2win1-nopwd/client_key.pem
+    clientCertCA: /Users/goran/code/secret/pro2win1-nopwd/root.pem
