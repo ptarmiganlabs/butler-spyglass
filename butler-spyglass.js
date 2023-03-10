@@ -3,7 +3,6 @@ const fs = require('fs-extra');
 const Queue = require('better-queue');
 const enigma = require('enigma.js');
 const WebSocket = require('ws');
-// const path = require('path');
 const upath = require('upath');
 
 // Load our own code
@@ -20,7 +19,6 @@ const isPkg = typeof process.pkg !== 'undefined';
 const execPath = isPkg ? upath.dirname(process.execPath) : __dirname;
 
 // Helper function to read the contents of the certificate files:
-// const readCert = filename => fs.readFileSync(path.resolve(__dirname, certificatesPath, filename));
 const readCert = (filename) => fs.readFileSync(filename);
 
 //  Engine config
@@ -37,6 +35,7 @@ const configEngine = {
 };
 
 // Set up enigma.js configuration
+// eslint-disable-next-line import/no-dynamic-require
 const qixSchema = require(`enigma.js/schemas/${configEngine.engineVersion}`);
 
 logger.info(`--------------------------------------`);
@@ -74,6 +73,7 @@ const q = new Queue(
     async function dumpApp(taskItem, cb) {
         logger.debug(`Dumping app: ${taskItem.qDocId} <<>> ${taskItem.qTitle}`);
 
+        // eslint-disable-next-line no-underscore-dangle
         const _self = this;
         const newLocal = extractApp.appExtractMetadata(_self, q, taskItem, cb);
 
@@ -93,37 +93,6 @@ const q = new Queue(
 //     let _selfRetry = this;
 //     const newLocalRetry =
 // })
-
-q.on('task_finish', (taskId, result) => {
-    // Handle finished result
-    logger.debug(`Task finished: ${taskId} with result ${result}`);
-});
-
-q.on('task_failed', (taskId, errorMessage, stats) => {
-    // Handle error
-    logger.error(`Task failed: ${taskId} with error ${errorMessage}, stats=${JSON.stringify(stats, null, 2)}`);
-});
-
-// q.on('task_progress', function (taskId, completed, total) {
-//     // Handle task progress
-//     logger.debug(`========== Task progress: ${taskId}, ${completed}/${total} done`);
-// });
-
-// Fires when queue is empty and all tasks have finished.
-// I.e. when all data in an extraction run is available and can be written to disk.
-q.on('drain', () => {
-    logger.info(`Done writing lineage data, script files and data connections to disk`);
-
-    // Schedule next extraction run after configured time period
-    // Only do this if enable in the config file though!
-    if (config.get('ButlerSpyglass.enableScheduledExecution')) {
-        logger.info(`Waiting ${config.get('ButlerSpyglass.extractFrequency') / 1000} seconds until next extraction run`);
-        setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
-    } else {
-        logger.info(`All done - exiting.`);
-        process.exit(0);
-    }
-});
 
 // Define function to be scheduled
 const scheduledExtract = function scheduledExtract() {
@@ -204,6 +173,37 @@ const scheduledExtract = function scheduledExtract() {
             process.exit(1);
         });
 };
+
+q.on('task_finish', (taskId, result) => {
+    // Handle finished result
+    logger.debug(`Task finished: ${taskId} with result ${result}`);
+});
+
+q.on('task_failed', (taskId, errorMessage, stats) => {
+    // Handle error
+    logger.error(`Task failed: ${taskId} with error ${errorMessage}, stats=${JSON.stringify(stats, null, 2)}`);
+});
+
+// q.on('task_progress', function (taskId, completed, total) {
+//     // Handle task progress
+//     logger.debug(`========== Task progress: ${taskId}, ${completed}/${total} done`);
+// });
+
+// Fires when queue is empty and all tasks have finished.
+// I.e. when all data in an extraction run is available and can be written to disk.
+q.on('drain', () => {
+    logger.info(`Done writing lineage data, script files and data connections to disk`);
+
+    // Schedule next extraction run after configured time period
+    // Only do this if enable in the config file though!
+    if (config.get('ButlerSpyglass.enableScheduledExecution')) {
+        logger.info(`Waiting ${config.get('ButlerSpyglass.extractFrequency') / 1000} seconds until next extraction run`);
+        setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
+    } else {
+        logger.info(`All done - exiting.`);
+        process.exit(0);
+    }
+});
 
 // Kick off first extract. Following extracts will be triggered from within the scheduledExtract() function
 scheduledExtract();

@@ -14,11 +14,7 @@ module.exports.getDataConnections = async function getDataConnections() {
     try {
         // Create CSV write for storing current app's lineage to disk
         const dataconnectionsWriter = createCsvWriter({
-            path: path.resolve(
-                path.normalize(
-                    `${config.get('ButlerSpyglass.dataconnection.exportDir')}/dataconnections.csv`
-                )
-            ),
+            path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataconnection.exportDir')}/dataconnections.csv`)),
             header: [
                 {
                     id: 'id',
@@ -59,52 +55,32 @@ module.exports.getDataConnections = async function getDataConnections() {
             dataconnectionsWriter
                 .writeRecords(dataconnections.body)
                 .then(() => {
-                    logger.verbose(
-                        `Done writing ${dataconnections.length} data connection records to CSV disk file`
-                    );
+                    logger.verbose(`Done writing ${dataconnections.length} data connection records to CSV disk file`);
                 })
                 .catch((error) => {
-                    logger.error(
-                        `Failed to write data connections to CSV file on disk (make sure the output directory exists!): ${error}`
-                    );
+                    logger.error(`Failed to write data connections to CSV file on disk (make sure the output directory exists!): ${error}`);
                     process.exit(1);
                 });
 
             // Save JSON to disk
             try {
                 fs.writeFileSync(
-                    path.resolve(
-                        path.normalize(
-                            `${config.get(
-                                'ButlerSpyglass.dataconnection.exportDir'
-                            )}/dataconnections.json`
-                        )
-                    ),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataconnection.exportDir')}/dataconnections.json`)),
                     JSON.stringify(dataconnections.body, 0, 2)
                 );
                 logger.verbose(`Done writing data connections to JSON file on disk.`);
             } catch (err) {
-                logger.error(
-                    `Failed to write data connection file to JSON file on disk (make sure the output directory exists!): ${err}`
-                );
+                logger.error(`Failed to write data connection file to JSON file on disk (make sure the output directory exists!): ${err}`);
                 process.exit(3);
             }
 
             logger.info('Done writing data connection metadata to disk');
         } catch (err) {
-            logger.error(
-                `DATA CONNECTION: Error while getting data connections: ${JSON.stringify(
-                    err,
-                    null,
-                    2
-                )}`
-            );
+            logger.error(`DATA CONNECTION: Error while getting data connections: ${JSON.stringify(err, null, 2)}`);
             const newLocal = 'Error while getting data connections';
             throw newLocal;
         }
     } catch (err) {
-        logger.error(
-            `DATA CONNECTION: Error while conecting to QRS: ${JSON.stringify(err, null, 2)}`
-        );
+        logger.error(`DATA CONNECTION: Error while conecting to QRS: ${JSON.stringify(err, null, 2)}`);
     }
 };

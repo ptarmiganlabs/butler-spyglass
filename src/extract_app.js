@@ -11,7 +11,6 @@ const logger = require('./logger');
 let processedApps = 0;
 
 // Helper function to read the contents of the certificate files:
-// const readCert = filename => fs.readFileSync(path.resolve(__dirname, certificatesPath, filename));
 const readCert = (filename) => fs.readFileSync(filename);
 
 //  Engine config
@@ -38,12 +37,7 @@ module.exports.resetExtractedAppCount = () => {
     processedApps = 0;
 };
 
-module.exports.appExtractMetadata = async function appExtractMetadata(
-    worker,
-    queue,
-    appToExtract,
-    cb
-) {
+module.exports.appExtractMetadata = async function appExtractMetadata(worker, queue, appToExtract, cb) {
     // const lineageFileWriter = createCsvWriter({
     //     path: path.resolve(
     //         path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/lineage.csv`)
@@ -71,9 +65,9 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
     // Get queue stats
     const queueStats = queue.getStats();
     logger.logger.info(
-        `Extracting metadata (#${processedApps}, overall success rate ${
-            100 * queueStats.successRate
-        }%): ${appToExtract.qDocId} <<>> ${appToExtract.qTitle}`
+        `Extracting metadata (#${processedApps}, overall success rate ${100 * queueStats.successRate}%): ${appToExtract.qDocId} <<>> ${
+            appToExtract.qTitle
+        }`
     );
 
     // Create a new session
@@ -99,9 +93,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
     try {
         global = await session.open();
     } catch (err) {
-        logger.logger.error(
-            `enigmaOpen error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`
-        );
+        logger.logger.error(`enigmaOpen error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`);
 
         cb(err);
         return;
@@ -115,9 +107,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
         app = await global.openDoc(appToExtract.qDocId, '', '', '', true);
         logger.logger.debug(`openDoc success for appId: ${appToExtract.qDocId}`);
     } catch (err) {
-        logger.logger.error(
-            `openDoc error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`
-        );
+        logger.logger.error(`openDoc error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`);
 
         session.close();
         cb(err);
@@ -134,13 +124,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
 
             // Create CSV write for storing current app's lineage to disk
             const lineageCurrentAppWriter = createCsvWriter({
-                path: path.resolve(
-                    path.normalize(
-                        `${config.get('ButlerSpyglass.lineage.exportDir')}/${
-                            appToExtract.qDocId
-                        }.csv`
-                    )
-                ),
+                path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/${appToExtract.qDocId}.csv`)),
                 header: [
                     {
                         id: 'appId',
@@ -179,14 +163,8 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
                     lineageCurrentApp.push({
                         appId: appToExtract.qDocId,
                         appName: appToExtract.qDocName,
-                        discriminator: el.qDiscriminator.substring(
-                            0,
-                            config.get('ButlerSpyglass.lineage.maxLengthDiscriminator')
-                        ),
-                        statement: el.qStatement.substring(
-                            0,
-                            config.get('ButlerSpyglass.lineage.maxLengthStatement')
-                        ),
+                        discriminator: el.qDiscriminator.substring(0, config.get('ButlerSpyglass.lineage.maxLengthDiscriminator')),
+                        statement: el.qStatement.substring(0, config.get('ButlerSpyglass.lineage.maxLengthStatement')),
                     });
                 });
             }
@@ -210,18 +188,10 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
             // Then as JSON
             try {
                 fs.writeFileSync(
-                    path.resolve(
-                        path.normalize(
-                            `${config.get('ButlerSpyglass.lineage.exportDir')}/${
-                                appToExtract.qDocId
-                            }.json`
-                        )
-                    ),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/${appToExtract.qDocId}.json`)),
                     JSON.stringify(lineageCurrentApp, 0, 2)
                 );
-                logger.logger.verbose(
-                    `Done writing script for app ID ${appToExtract.qDocId} to disk`
-                );
+                logger.logger.verbose(`Done writing script for app ID ${appToExtract.qDocId} to disk`);
             } catch (err) {
                 logger.logger.error(
                     `Failed to write lineage info to JSON file on disk for app ID ${appToExtract.qDocId} (make sure the output directory exists!): ${err}`
@@ -229,9 +199,7 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
                 process.exit(2);
             }
         } catch (err) {
-            logger.logger.error(
-                `getLineage error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`
-            );
+            logger.logger.error(`getLineage error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`);
 
             session.close();
             cb(err);
@@ -248,31 +216,19 @@ module.exports.appExtractMetadata = async function appExtractMetadata(
             // Save current app's script to disk file. Sync writing to keep things simple.
             try {
                 fs.writeFileSync(
-                    path.resolve(
-                        path.normalize(
-                            `${config.get('ButlerSpyglass.script.exportDir')}/${
-                                appToExtract.qDocId
-                            }.qvs`
-                        )
-                    ),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.script.exportDir')}/${appToExtract.qDocId}.qvs`)),
                     script
                 );
-                logger.logger.verbose(
-                    `Done writing script for app ID ${appToExtract.qDocId} to disk`
-                );
+                logger.logger.verbose(`Done writing script for app ID ${appToExtract.qDocId} to disk`);
             } catch (err) {
-                logger.logger.error(
-                    `Error when writing script for app ID ${appToExtract.qDocId} to disk: ${err}`
-                );
+                logger.logger.error(`Error when writing script for app ID ${appToExtract.qDocId} to disk: ${err}`);
                 session.close();
                 cb(err);
                 return;
             }
         } catch (err) {
             session.close();
-            logger.logger.error(
-                `getScript error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`
-            );
+            logger.logger.error(`getScript error (app ID=${appToExtract.qDocId}): ${JSON.stringify(err)}`);
             session.close();
 
             cb(err);
