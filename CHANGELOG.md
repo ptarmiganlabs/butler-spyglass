@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.0...butler-spyglass-v2.0.1) (2023-03-10)
+
+
+### Build pipeline
+
+* Add missing VirusTotal scan during build ([ff3741a](https://github.com/ptarmiganlabs/butler-spyglass/commit/ff3741aea7a55e0182e7db822b069d19a77fb74d))
+* Revert to automatic version numbering ([6ab25db](https://github.com/ptarmiganlabs/butler-spyglass/commit/6ab25db8304022cebd728987f29fae6e96d27507))
+
 ## [2.0.0](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.0...butler-spyglass-v2.0.0) (2023-03-10)
 
 
