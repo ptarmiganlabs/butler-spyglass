@@ -28,7 +28,7 @@ logTransports.push(
 if (config.get('ButlerSpyglass.fileLogging')) {
     logTransports.push(
         new winston.transports.DailyRotateFile({
-            dirname: path.join(__dirname, config.get('ButlerSpyglass.logDirectory')),
+            dirname: path.join(process.cwd(), config.get('ButlerSpyglass.logDirectory')),
             filename: 'butler-spyglass.%DATE%.log',
             level: config.get('ButlerSpyglass.logLevel'),
             datePattern: 'YYYY-MM-DD',
@@ -49,5 +49,4 @@ module.exports.logger = winston.createLogger({
     ),
 });
 
-module.exports.getLoggingLevel = () =>
-    logTransports.find((transport) => transport.name === 'console').level;
+module.exports.getLoggingLevel = () => logTransports.find((transport) => transport.name === 'console').level;

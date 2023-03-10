@@ -1,9 +1,39 @@
 # Butler Spyglass
 
-[![Build Status](https://travis-ci.com/ptarmiganlabs/butler-spyglass.svg?branch=master)](https://travis-ci.com/ptarmiganlabs/butler-spyglass)
+[![Build status](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml/badge.svg?branch=master)](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml)
 
 Butler Spyglass is a tool for extracting metadata from Qlik Sense applications.
-The tool will extract metadata for all applications in a Qlik Sense environment.
+
+The tool will
+
+- Extract data lineage for all or some applications.
+- Extract load scripts for all or some applications.
+- Extract complete info for all data connections.
+- Run once or recurring at a configurable interval.
+
+
+## Table of contents
+
+- [Butler Spyglass](#butler-spyglass)
+  - [Table of contents](#table-of-contents)
+  - [Why extract app metadata](#why-extract-app-metadata)
+    - [Data lineage](#data-lineage)
+    - [Load scripts](#load-scripts)
+  - [What's new](#whats-new)
+  - [Extracted data](#extracted-data)
+    - [Extracting load scripts](#extracting-load-scripts)
+    - [Extracting data lineage](#extracting-data-lineage)
+  - [Config file](#config-file)
+  - [Logging](#logging)
+  - [Running Butler Spyglass](#running-butler-spyglass)
+    - [Run from command line](#run-from-command-line)
+    - [Run using Docker](#run-using-docker)
+  - [Output files](#output-files)
+    - [Data lineage output files](#data-lineage-output-files)
+    - [Load script output files](#load-script-output-files)
+    - [Load script output files](#load-script-output-files-1)
+  - [Analysing the generated files](#analysing-the-generated-files)
+  - [Security / Disclosure](#security--disclosure)
 
 ## Why extract app metadata
 
@@ -11,11 +41,9 @@ The tool will extract metadata for all applications in a Qlik Sense environment.
 
 When using Sense in enterprise environments, there is often a need to understand both what apps use a certain data source, and what data sources are used by a specific app.
 
-* When de-commissioning an old system that feed several Sense apps with data, it is important to know which these apps are. Butler Spyglass provide this information in the form of data lineage information.
-
-* If a data source contains sensitive information, it is important to always have up-to-date information on what apps use the data source in question.
-
-* Reviewing and auditing apps is greatly simplified if there is clear information on what data sources the app in question uses.
+- When de-commissioning an old system that feed several Sense apps with data, it is important to know which these apps are. Butler Spyglass provide this information in the form of data lineage information.
+- If a data source contains sensitive information, it is important to always have up-to-date information on what apps use the data source in question.
+- Reviewing and auditing apps is greatly simplified if there is clear information on what data sources the app in question uses.
 
 ### Load scripts
 
@@ -26,7 +54,9 @@ Butler Spyglass solves all the scenarios above by extracting both data lineage i
 
 ## What's new
 
-The [change log](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/changelog.md)  contains the most complete list of changes.
+Each release on the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases) contains info what is new, if there are any breaking changes that require special attention etc.
+
+Older versions are described in the original [change log](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/changelog.md).
 
 ## Extracted data
 
@@ -35,22 +65,27 @@ Extracted information for each app is
 1. Load script
 2. Data lineage, i.e. what data sources are used by the app in question.
 
+In addition to the above, complete definitions (except credentials, passwords etc) for all data connections in the Qlik Sense server are extracted and stored as CSV and JSON files.
+
 ### Extracting load scripts
 
-Whether or not to extract app load scripts is controlled by the configuration parameter ```ButlerSpyglass.script.enableScriptExtract```. Set to true/false as needed.
+Whether or not to extract app load scripts is controlled by the configuration parameter `ButlerSpyglass.script.enableScriptExtract`. Set to true/false as needed.
 
-Each app's load script is extracted and stored in a file in a folder as defined by the ```ButlerSpyglass.script.scriptFolder``` configuration parameter.
+Each app's load script is extracted and stored in a file in a folder as defined by the `ButlerSpyglass.script.exportDir` configuration parameter.
 Each file will be use the app ID as file name.
 
 ### Extracting data lineage
 
-Whether or not to extract data lineage info for apps is controlled by the configuration parameter ```ButlerSpyglass.lineage.enableLineageExtract```. Set to true/false as needed.
+Whether or not to extract data lineage info for apps is controlled by the configuration parameter `ButlerSpyglass.lineage.enableLineageExtract`. Set to true/false as needed.
 
-Data lineage information is stored in a single CSV (```lineage.csv```) file in a folder defined by the ```ButlerSpyglass.lineage.lineageFolder``` configuration parameter.
+Data lineage information is stored in a single CSV (`lineage.csv`) file in a folder defined by the `ButlerSpyglass.lineage.exportDir` configuration parameter.
+
+More info about discriminators and statements is found [here](https://help.qlik.com/en-US/sense-developer/February2023/Subsystems/EngineJSONAPI/Content/models-lineageinfo.htm).
 
 ## Config file
 
-Make a copy of ```./config/production-template.yaml```, call the new file ```production.yaml```. Edit as needed to match your Qlik Sense Enterprise environment.
+A template config file is available [here](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/config/production-template.yaml).  
+How to name and where to store the config file is described [here](#running-butler-spyglass).
 
 The parameters in the config file are described below.
 All parameters must be defined in the config file - run time errors will occur otherwise.
@@ -69,20 +104,20 @@ All parameters must be defined in the config file - run time errors will occur o
 |  |  |
 | **Lineage specific** |  |
 | enableLineageExtract | Control whether to extract lineage info or not. true/false |
-| lineageFolder | Folder where lineage files should be stored. Files are stored in a subfolder ```lineage``` |
+| exportDir | Folder where lineage files should be stored. Files are stored in a subfolder `lineage` |
 | maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
 | maxLengthStatement | Max characters of statement field (e.g. SQL statement) to store in per-app lineage disk file |
 |  |  |
 | **Script specific** | Control whether to extract lineage info or not. true/false |
 | enableScriptExtract: true |  |
-| scriptFolder | Folder where script files should be stored. Files are stored in a subfolder ```script```  |
+| exportDir | Folder where script files should be stored. Files are stored in a subfolder `script`  |
 |  |  |
 | **Parameters for connecting to Qlik Sense engine API** |  |
 | engineVersion | Version of the Qlik Sense engine running on the target server. Sense February 2019 has version number 12.170.2 |
 | server | Fully qualified domain name (=FQDN) of Qlik Sense Enterprise server from which data should be retrieved. |
 | serverPort | Should be 4747, unless configured otherwise in the QMC. |
-| isSecure | Set to true if https is used to communicate with the engine API. |
-| X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. ```UserDirectory=Internal;UserId=sa_repository``` is a system account that will give access to all apps |
+| useSSL | Set to true if https is used to communicate with the engine API. |
+| X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. `UserDirectory=Internal;UserId=sa_repository` is a system account that will give access to all apps |
 | ca | Root certificate, as exported from the QMC |
 | cert | Client certificate, as exported from the QMC |
 | key | Client certificate key, as exported from the QMC |
@@ -98,24 +133,58 @@ Log files on disk are rotated daily. They are kept for 30 days, after which the 
 
 ## Running Butler Spyglass
 
-Once the config file is in place there are several ways to run Butler Spyglass.
+There is no installer, just download the desired binary from the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases).
+
+Then edit the config file as needed (there is a template config file [here](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/config/production-template.yaml)).  
+Place the config file in the config subdirectory in the directory where Butler Spyglass was started.  
+For example, if `butler-spyglass.exe` is stored in `d:\tools\butler-spyglass`, the config file should be stored in `d:\tools\butler-spyglass\config`.
+
+You must also set the NODE_ENV environment variable to the name of the config file.  
+For example, if your config file is called `my-config-file.yaml` the NODE_ENV environment variable should be set to `my-config-file`.  
+Butler Spyglass uses that variable to determine where to look for the config file.
 
 ### Run from command line
 
-Start the tool by running from the command line:
+```powershell
+PS C:\tools\butler-spyglass> .\butler-spyglass.exe
+2023-03-10T17:16:57.144Z info: --------------------------------------
+2023-03-10T17:16:57.144Z info: | butler-spyglass
+2023-03-10T17:16:57.144Z info: |
+2023-03-10T17:16:57.144Z info: | Version    : 1.2.1
+2023-03-10T17:16:57.144Z info: | Log level  : info
+2023-03-10T17:16:57.144Z info: |
+2023-03-10T17:16:57.144Z info: --------------------------------------
+2023-03-10T17:16:57.144Z info:
+2023-03-10T17:16:57.144Z info: Extracting metadata from server: 192.168.100.109
+2023-03-10T17:16:57.144Z info: Data linage files will be stored in                : ./out/lineage
+2023-03-10T17:16:57.144Z info: Load script files will be stored in                : ./out/script
+2023-03-10T17:16:57.144Z info: Data connection definitions files will be stored in: ./out/dataconnection
+2023-03-10T17:16:57.160Z info: --------------------------------------
+2023-03-10T17:16:57.160Z info: Extraction run started
+2023-03-10T17:16:57.284Z info: Done writing data connection metadata to disk
+2023-03-10T17:16:57.660Z info: Number of apps on server: 337
+2023-03-10T17:16:57.675Z info: Extracting metadata (#1, overall success rate 0%): 9e15c449-6269-4a0b-a51a-afbda794bce2 <<>> 🔑 Butler Auth
+2023-03-10T17:16:57.675Z info: Extracting metadata (#2, overall success rate 0%): b34a8081-ca65-4005-8a93-5daf2d6b7364 <<>> 📨 Butler
+2023-03-10T17:16:57.675Z info: Extracting metadata (#3, overall success rate 0%): 8873183c-a45d-412e-b718-d3365af58706 <<>> 🏆 Butler Control-Q
+2023-03-10T17:16:58.364Z info: Extracting metadata (#4, overall success rate 100%): 7b797bd9-8354-4d00-a4d1-2d50c74c92b3 <<>> 🏆 Butler Control-Q
+2023-03-10T17:16:58.364Z info: Extracting metadata (#5, overall success rate 100%): fc90c7f0-f498-4780-8864-2f78f449d9e9 <<>> ✅ Qlik help pages
+2023-03-10T17:16:58.378Z info: Extracting metadata (#6, overall success rate 100%): 874369dd-cee1-431b-b9fd-22087382c3c9 <<>> ⚠️Butler SOS
+2023-03-10T17:16:58.988Z info: Extracting metadata (#7, overall success rate 100%): a5f868ca-60ff-4df6-93e9-2c45577fe703 <<>> Web site analytics(1)
+...
+...
+```
 
-    node index.js
-
-You may want to consider using a process monitor such as [PM2](http://pm2.keymetrics.io/) to ensure that Butler Spyglass is always running.
+If `ButlerSpyglass.enableScheduledExecution` in the config file is set to `true` Butler Spyglass will keep running and do a data lineage extract run every `ButlerSpyglass.extractFrequency` milliseconds.
 
 ### Run using Docker
 
-Using Docker arguably the easiest, most scalable and in general "enterprise grade" way to deploy Butler Spyglass. A few things to keep in mind though:
+Using Docker is arguably the easiest, most scalable and in general "enterprise grade" way to deploy Butler Spyglass. A few things to keep in mind though:
 
-* The NODE_ENV variable in the ```docker-compose.yml``` file controls what config file will be used. If NODE_ENV is set to *production*, the file ```./config/production.yaml``` will be used.
-* The output directories defined in the ```./config/production.yaml``` file must match the volume mapping in the docker-compose.yml file. I.e. if the config file defines the output directories as ```./out/lineage``` and ```./out/script```, the docker-compose file must map the containers /nodeapp/out to an existing directory on the Docker host, for example
+* The NODE_ENV variable in the `docker-compose.yml` file controls what config file will be used. If NODE_ENV is set to *production*, the file `./config/production.yaml` will be used.
+* The output directories defined in the `./config/production.yaml` file must match the volume mapping in the docker-compose.yml file.  
+  I.e. if the config file defines the output directories as `./out/lineage` and `./out/script`, the docker-compose file must map the containers /nodeapp/out to an existing directory on the Docker host, for example
 
-    ```./out:/nodeapp/out```.
+    `./out:/nodeapp/out`.
 
 Looking at the directory structure and the config files, they could look as follows:
 
@@ -130,81 +199,98 @@ Looking at the directory structure and the config files, they could look as foll
     │   └── production.yaml
     ├── docker-compose.yml
     └── out
+       ├── dataconnection
        ├── lineage
        └── script
 
 *config/production.yaml*:
 
-    ---
-    ButlerSpyglass:
-      # Logging configuration
-      logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
-      fileLogging: true       # true/false to enable/disable logging to disk file
-      logDirectory: logs      # Subdirectory where log files are stored
+```yaml
+---
+ButlerSpyglass:
+  # Logging configuration
+  logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+  fileLogging: true       # true/false to enable/disable logging to disk file
+  logDirectory: logs      # Subdirectory where log files are stored
 
-      # Extract configuration
-      extractFrequency: 60000     # Time between extraction runs. Milliseconds
-      extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
-      extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
-      concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
-      enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
+  # Extract configuration
+  extractFrequency: 60000     # Time between extraction runs. Milliseconds
+  extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
+  extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
+  concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
+  enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
 
-      lineage:
-        enableLineageExtract: true
-        lineageFolder: ./out/lineage
-        maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
-        maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
+  lineage:
+    enableLineageExtract: true
+    exportDir: ./out/lineage
+    maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
+    maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
 
-      script:
-        enableScriptExtract: true
-        scriptFolder: ./out/script
+  script:
+    enableScriptExtract: true
+    exportDir: ./out/script
 
-      configEngine:
-        engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019
-        server: sense.ptarmiganlabs.net
-        serverPort: 4747
-        isSecure: true
-        headers:
-          X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
-        ca: /nodeapp/config/certificate/root.pem
-        cert: /nodeapp/config/certificate/client.pem
-        key: /nodeapp/config/certificate/client_key.pem
-        rejectUnauthorized: false
+  configEngine:
+    engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019
+    server: sense.ptarmiganlabs.net
+    serverPort: 4747
+    useSSL: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+    ca: /nodeapp/config/certificate/root.pem
+    cert: /nodeapp/config/certificate/client.pem
+    key: /nodeapp/config/certificate/client_key.pem
+    rejectUnauthorized: false
+```
 
 *docker-compose.yml*:
 
-    version: '3.3'
-    services:
-      butler-spyglass:
-        image: ptarmiganlabs/butler-spyglass:latest
-        container_name: butler-spyglass
-        restart: always
-        volumes:
-          # Make config file and output directories are accessible outside of container
-          - "./config:/nodeapp/config"
-          - "./out:/nodeapp/out"
-        environment:
-          - "NODE_ENV=production"
-        logging:
-          driver: json-file
-
-## Sample output
-
-With log level set to VERBOSE set in the config file, output might look like this:
-
-![Running Butler Spyglass](img/running-butler-spyglass-1.png "With verbose logging level, information about individual apps is shown.")
+```yaml
+version: '3.3'
+services:
+  butler-spyglass:
+    image: ptarmiganlabs/butler-spyglass:latest
+    container_name: butler-spyglass
+    restart: always
+    volumes:
+      # Make config file and output directories are accessible outside of container
+      - "./config:/nodeapp/config"
+      - "./out:/nodeapp/out"
+    environment:
+      - "NODE_ENV=production"
+    logging:
+      driver: json-file
+```
 
 ## Output files
 
-The **data lineage** information is saved to individual files - one for each app. The file name is ```<app id>.csv```:
+The output directories are emptied every time Butler Spyglass is started.  
+No need to manually clear them thus.
 
-    ➜ ll out/lineage
-    total 3568
-    -rw-r--r--  1 goran  staff   3.2K Mar 15 07:56 0325381f-0a6f-4dda-a89b-0fc125e1eeee.csv
-    -rw-r--r--  1 goran  staff    31B Mar 15 07:56 03941343-21d9-4e43-98db-26c87e381b69.csv
-    -rw-r--r--  1 goran  staff   2.9K Mar 15 07:56 0581fa58-34f5-4f79-a4c2-85c4e2d6e367.csv
-    -rw-r--r--  1 goran  staff    31B Mar 15 07:56 05f21ae5-7877-4ce4-b65e-1160ac3deaea.csv
-    -rw-r--r--  1 goran  staff   1.3K Mar 15 07:56 084b62fb-69ab-49c0-8170-203170b81b9e.csv
+### Data lineage output files
+
+The data lineage information is saved as JSON and CSV files - for each app.  
+The file names are `<app id>.csv` and `<app id>.json`:
+
+```powershell
+PS C:\tools\butler-spyglass> dir .\out\lineage\
+
+
+    Directory: C:\tools\butler-spyglass\out\lineage
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        10/03/2023     18:21            101 1254a8c6-f804-4d29-b386-7aab07f512f9.csv
+-a----        10/03/2023     18:21            151 1254a8c6-f804-4d29-b386-7aab07f512f9.json
+-a----        10/03/2023     18:21            105 1a98ef8e-dd98-442b-8b76-58de43b5cbfa.csv
+-a----        10/03/2023     18:21            155 1a98ef8e-dd98-442b-8b76-58de43b5cbfa.json
+-a----        10/03/2023     18:21             92 2fa09446-86fa-495c-b803-025c4c8ebc23.csv
+-a----        10/03/2023     18:21             96 2fa09446-86fa-495c-b803-025c4c8ebc23.json
+-a----        10/03/2023     18:21            112 aa5fde91-f8c0-4127-9eb1-452b31355e8e.csv
+-a----        10/03/2023     18:21            162 aa5fde91-f8c0-4127-9eb1-452b31355e8e.json
+...
+```
 
 Each lineage file may contain zero or more rows, each representing a data source or destination that the app uses.
 Everything is included - even inline tables, resident loads, writing to QVDs etc.
@@ -232,46 +318,98 @@ The setting is global for all apps, and applies to all rows of lineage data extr
     ,,
     62dc4e60-8ba6-48af-9eac-9a076fd35819,DSN=AUTOGENERATE;,
 
-Each app's **load script** is also stored as its own file, with the app ID as the file name:
+### Load script output files
 
-    ➜ ll out/script
-    total 2024
-    -rw-r--r--  1 goran  staff    12K Mar 10 17:46 0325381f-0a6f-4dda-a89b-0fc125e1eeee.qvs
-    -rw-r--r--  1 goran  staff   819B Mar 10 17:46 03941343-21d9-4e43-98db-26c87e381b69.qvs
-    -rw-r--r--  1 goran  staff    11K Mar 10 17:46 0581fa58-34f5-4f79-a4c2-85c4e2d6e367.qvs
-    -rw-r--r--  1 goran  staff   483B Mar 10 17:46 05f21ae5-7877-4ce4-b65e-1160ac3deaea.qvs
-    -rw-r--r--  1 goran  staff   5.2K Mar 10 17:46 084b62fb-69ab-49c0-8170-203170b81b9e.qvs
+Each app's load script is also stored as its own file, with the app ID as the file name:
+
+```powershell
+PS C:\tools\butler-spyglass> dir .\out\script\
 
 
-
-    ➜ cat out/script/03941343-21d9-4e43-98db-26c87e381b69.qvs
-    ///$tab Main
-    SET ThousandSep=',';
-    SET DecimalSep='.';
-    SET MoneyThousandSep=',';
-    SET MoneyDecimalSep='.';
-    SET MoneyFormat='$#,##0.00;-$#,##0.00';
-    SET TimeFormat='h:mm:ss TT';
-    SET DateFormat='M/D/YYYY';
-    SET TimestampFormat='M/D/YYYY h:mm:ss[.fff] TT';
-    SET FirstWeekDay=6;
-    SET BrokenWeeks=1;
-    SET ReferenceDay=0;
-    SET FirstMonthOfYear=1;
-    SET CollationLocale='en-US';
-    SET CreateSearchIndexOnReload=1;
-    SET MonthNames='Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec';
-    SET LongMonthNames='January;February;March;April;May;June;July;August;September;October;November;December';
-    SET DayNames='Mon;Tue;Wed;Thu;Fri;Sat;Sun';
-    SET LongDayNames='Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday';
-
-    ///$tab Section
-    Sleep 10000;
-    ///$tab Auto-generated section
-    ///$autogenerated
+    Directory: C:\tools\butler-spyglass\out\script
 
 
-    Unqualify *;
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        10/03/2023     18:21           6470 1254a8c6-f804-4d29-b386-7aab07f512f9.qvs
+-a----        10/03/2023     18:21           3170 1a98ef8e-dd98-442b-8b76-58de43b5cbfa.qvs
+-a----        10/03/2023     18:21           3190 2fa09446-86fa-495c-b803-025c4c8ebc23.qvs
+-a----        10/03/2023     18:21           1677 aa5fde91-f8c0-4127-9eb1-452b31355e8e.qvs
+...
+```
+
+```powershell
+PS C:\tools\butler-spyglass> type .\out\script\aa5fde91-f8c0-4127-9eb1-452b31355e8e.qvs
+///$tab Main
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET MoneyThousandSep=',';
+SET MoneyDecimalSep='.';
+SET MoneyFormat='$#,##0.00;-$#,##0.00';
+SET TimeFormat='h:mm:ss TT';
+SET DateFormat='M/D/YYYY';
+SET TimestampFormat='M/D/YYYY h:mm:ss[.fff] TT';
+SET FirstWeekDay=6;
+SET BrokenWeeks=1;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+SET CollationLocale='en-US';
+SET CreateSearchIndexOnReload=1;
+SET MonthNames='Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec';
+SET LongMonthNames='January;February;March;April;May;June;July;August;September;October;November;December';
+SET DayNames='Mon;Tue;Wed;Thu;Fri;Sat;Sun';
+SET LongDayNames='Monday;Tuesday;Wednesday;Thursday;Friday;Saturday;Sunday';
+SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:Î¼;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
+
+///$tab Test data 1
+Characters:
+Load Chr(RecNo()+Ord('A')-1) as Alpha, RecNo() as Num autogenerate 26;
+
+ASCII:
+Load
+ if(RecNo()>=65 and RecNo()<=90,RecNo()-64) as Num,
+ Chr(RecNo()) as AsciiAlpha,
+ RecNo() as AsciiNum
+autogenerate 255
+ Where (RecNo()>=32 and RecNo()<=126) or RecNo()>=160 ;
+
+Transactions:
+Load
+ TransLineID,
+ TransID,
+ mod(TransID,26)+1 as Num,
+ Pick(Ceil(3*Rand1),'A','B','C') as Dim1,
+ Pick(Ceil(6*Rand1),'a','b','c','d','e','f') as Dim2,
+ Pick(Ceil(3*Rand()),'X','Y','Z') as Dim3,
+ Round(1000*Rand()*Rand()*Rand1) as Expression1,
+ Round(  10*Rand()*Rand()*Rand1) as Expression2,
+ Round(Rand()*Rand1,0.00001) as Expression3;
+Load
+ Rand() as Rand1,
+ IterNo() as TransLineID,
+ RecNo() as TransID
+Autogenerate 1000
+ While Rand()<=0.5 or IterNo()=1;
+
+ Comment Field Dim1 With "This is a field comment";
+```
+
+### Load script output files
+
+All data connections for the entire Qlik Sense server are exported to JSON and CSV files:
+
+```powershell
+PS C:\tools\butler-spyglass> dir .\out\dataconnection\
+
+
+    Directory: C:\tools\butler-spyglass\out\dataconnection
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        10/03/2023     18:21          32953 dataconnections.csv
+-a----        10/03/2023     18:21          52468 dataconnections.json
+```
 
 ## Analysing the generated files
 
