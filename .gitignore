@@ -13,11 +13,13 @@ config/development.json
 npm-debug.log
 .DS_Store
 out/*
+release/*
 
 
 # ---> Node
 # Logs
 logs
+log
 *.log
 npm-debug.log*
 
