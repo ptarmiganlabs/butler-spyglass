@@ -24,8 +24,8 @@ const readCert = (filename) => fs.readFileSync(filename);
 //  Engine config
 const configEngine = {
     engineVersion: config.get('ButlerSpyglass.configEngine.engineVersion'),
-    host: config.get('ButlerSpyglass.configEngine.server'),
-    port: config.get('ButlerSpyglass.configEngine.serverPort'),
+    host: config.get('ButlerSpyglass.configEngine.host'),
+    port: config.get('ButlerSpyglass.configEngine.port'),
     isSecure: config.get('ButlerSpyglass.configEngine.useSSL'),
     headers: config.get('ButlerSpyglass.configEngine.headers'),
     ca: readCert(config.get('ButlerSpyglass.cert.clientCertCA')),
@@ -46,15 +46,15 @@ logger.info(`| Log level  : ${getLoggingLevel()}`);
 logger.info(`|  `);
 logger.info(`--------------------------------------`);
 logger.info(``);
-logger.info(`Extracting metadata from server: ${config.get('ButlerSpyglass.configEngine.server')}`);
-if (config.get('ButlerSpyglass.lineage.enableLineageExtract') === true) {
-    logger.info(`Data linage files will be stored in                : ${config.get('ButlerSpyglass.lineage.exportDir')}`);
+logger.info(`Extracting metadata from server: ${config.get('ButlerSpyglass.configEngine.host')}`);
+if (config.get('ButlerSpyglass.lineageExtract.enable') === true) {
+    logger.info(`Data linage files will be stored in                : ${config.get('ButlerSpyglass.lineageExtract.exportDir')}`);
 }
-if (config.get('ButlerSpyglass.script.enableScriptExtract')) {
-    logger.info(`Load script files will be stored in                : ${config.get('ButlerSpyglass.script.exportDir')}`);
+if (config.get('ButlerSpyglass.scriptExtract.enable')) {
+    logger.info(`Load script files will be stored in                : ${config.get('ButlerSpyglass.scriptExtract.exportDir')}`);
 }
-if (config.get('ButlerSpyglass.dataconnection.enableDataConnectionExtract')) {
-    logger.info(`Data connection definitions files will be stored in: ${config.get('ButlerSpyglass.dataconnection.exportDir')}`);
+if (config.get('ButlerSpyglass.dataConnectionExtract.enable')) {
+    logger.info(`Data connection definitions files will be stored in: ${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}`);
 }
 logger.verbose(``);
 logger.verbose(`Butler Spyglass was started from ${execPath}`);
@@ -80,9 +80,9 @@ const q = new Queue(
         // cb();
     },
     {
-        concurrent: config.get('ButlerSpyglass.concurrentTasks'), // Number of tasks to process in parallel
-        maxTimeout: config.get('ButlerSpyglass.extractItemTimeout'), // Max time allowed for each app extract, before timeout error is thrown
-        afterProcessDelay: config.get('ButlerSpyglass.extractItemInterval'), // Delay between each task
+        concurrent: config.get('ButlerSpyglass.extract.concurrentTasks'), // Number of tasks to process in parallel
+        maxTimeout: config.get('ButlerSpyglass.extract.itemTimeout'), // Max time allowed for each app extract, before timeout error is thrown
+        afterProcessDelay: config.get('ButlerSpyglass.extract.itemInterval'), // Delay between each task
         filo: true,
     }
 );
@@ -101,14 +101,14 @@ const scheduledExtract = function scheduledExtract() {
     logger.info(`Extraction run started`);
 
     // Get data connections
-    if (config.get('ButlerSpyglass.dataconnection.enableDataConnectionExtract') === true) {
+    if (config.get('ButlerSpyglass.dataConnectionExtract.enable') === true) {
         getDataConnections();
     }
 
     // Empty output folders
-    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.lineage.exportDir')}/`)));
-    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.script.exportDir')}/`)));
-    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.dataconnection.exportDir')}/`)));
+    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.lineageExtract.exportDir')}/`)));
+    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.scriptExtract.exportDir')}/`)));
+    fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/`)));
 
     // create a new session
     const configEnigma = {
@@ -196,9 +196,9 @@ q.on('drain', () => {
 
     // Schedule next extraction run after configured time period
     // Only do this if enable in the config file though!
-    if (config.get('ButlerSpyglass.enableScheduledExecution')) {
-        logger.info(`Waiting ${config.get('ButlerSpyglass.extractFrequency') / 1000} seconds until next extraction run`);
-        setTimeout(scheduledExtract, config.get('ButlerSpyglass.extractFrequency'));
+    if (config.get('ButlerSpyglass.extract.enableScheduledExecution')) {
+        logger.info(`Waiting ${config.get('ButlerSpyglass.extract.frequency') / 1000} seconds until next extraction run`);
+        setTimeout(scheduledExtract, config.get('ButlerSpyglass.extract.frequency'));
     } else {
         logger.info(`All done - exiting.`);
         process.exit(0);

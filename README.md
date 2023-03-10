@@ -11,7 +11,6 @@ The tool will
 - Extract complete info for all data connections.
 - Run once or recurring at a configurable interval.
 
-
 ## Table of contents
 
 - [Butler Spyglass](#butler-spyglass)
@@ -69,16 +68,16 @@ In addition to the above, complete definitions (except credentials, passwords et
 
 ### Extracting load scripts
 
-Whether or not to extract app load scripts is controlled by the configuration parameter `ButlerSpyglass.script.enableScriptExtract`. Set to true/false as needed.
+Whether or not to extract app load scripts is controlled by the configuration parameter `ButlerSpyglass.scriptExtract.enableScriptExtract`. Set to true/false as needed.
 
-Each app's load script is extracted and stored in a file in a folder as defined by the `ButlerSpyglass.script.exportDir` configuration parameter.
+Each app's load script is extracted and stored in a file in a folder as defined by the `ButlerSpyglass.scriptExtract.exportDir` configuration parameter.
 Each file will be use the app ID as file name.
 
 ### Extracting data lineage
 
-Whether or not to extract data lineage info for apps is controlled by the configuration parameter `ButlerSpyglass.lineage.enableLineageExtract`. Set to true/false as needed.
+Whether or not to extract data lineage info for apps is controlled by the configuration parameter `ButlerSpyglass.lineageExtract.enableLineageExtract`. Set to true/false as needed.
 
-Data lineage information is stored in a single CSV (`lineage.csv`) file in a folder defined by the `ButlerSpyglass.lineage.exportDir` configuration parameter.
+Data lineage information is stored in a single CSV (`lineage.csv`) file in a folder defined by the `ButlerSpyglass.lineageExtract.exportDir` configuration parameter.
 
 More info about discriminators and statements is found [here](https://help.qlik.com/en-US/sense-developer/February2023/Subsystems/EngineJSONAPI/Content/models-lineageinfo.htm).
 
@@ -92,36 +91,36 @@ All parameters must be defined in the config file - run time errors will occur o
 
 | Parameter | Description |
 | --------- | ----------- |
-| **General** |  |
-| logLevel | The level of details in the logs. Possible values are silly, debug, verbose, info, warn, error (in order of decreasing level of detail). Milliseconds |
+| logLevel | The level of details in the logs. Possible values are silly, debug, verbose, info, warn, error (in order of decreasing level of detail). |
 | fileLogging | true/false to enable/disable logging to disk file |
 | logDirectory | Subdirectory where log files are stored |
-| extractFrequency | Time between extraction runs. 60000 means that the next extraction run will start 60 seconds after the previous one ends. Milliseconds |
-| extractItemInterval | Time between two sets of apps are extracted. The number of apps in a set is defined by concurrentTasks (below). For example, if set to 500 there will be a 0.5 sec delay between sets of apps are sent to the Qlik Sense engine API. Milliseconds |
-| extractItemTimeout | Timeout for the call to the engine API. For example, if set to 5000 and no response has been received from the engine API within 5 seconds, an error will be thrown. Milliseconds.   |
-| concurrentTasks | Number of apps that will be sent in parallel to the engine API. Use with caution! You can easily affect performance of a Sense environment by setting this parameter too high. Start setting it low, then increase it while at the same time monitoring the realtime performance (mainly CPU) of the target server, to ensure it is not too heavily loaded by the data extraction tasks. |
-| enableScheduledExecution | true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit |
-|  |  |
-| **Lineage specific** |  |
-| enableLineageExtract | Control whether to extract lineage info or not. true/false |
-| exportDir | Folder where lineage files should be stored. Files are stored in a subfolder `lineage` |
-| maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
-| maxLengthStatement | Max characters of statement field (e.g. SQL statement) to store in per-app lineage disk file |
-|  |  |
-| **Script specific** | Control whether to extract lineage info or not. true/false |
-| enableScriptExtract: true |  |
-| exportDir | Folder where script files should be stored. Files are stored in a subfolder `script`  |
-|  |  |
-| **Parameters for connecting to Qlik Sense engine API** |  |
-| engineVersion | Version of the Qlik Sense engine running on the target server. Sense February 2019 has version number 12.170.2 |
-| server | Fully qualified domain name (=FQDN) of Qlik Sense Enterprise server from which data should be retrieved. |
-| serverPort | Should be 4747, unless configured otherwise in the QMC. |
-| useSSL | Set to true if https is used to communicate with the engine API. |
-| X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. `UserDirectory=Internal;UserId=sa_repository` is a system account that will give access to all apps |
-| ca | Root certificate, as exported from the QMC |
-| cert | Client certificate, as exported from the QMC |
-| key | Client certificate key, as exported from the QMC |
-| rejectUnauthorized | If set to true, strict checking will be done with respect to ssl certificates etc when connecting to the engine API. |
+| extract.frequency | Time between extraction runs. 60000 means that the next extraction run will start 60 seconds after the previous one ends. Milliseconds |
+| extract.itemInterval | Time between two sets of apps are extracted. The number of apps in a set is defined by `extract.concurrentTasks` (below). For example, if set to 500 there will be a 0.5 sec delay between sets of apps are sent to the Qlik Sense engine API. Milliseconds |
+| extract.itemTimeout | Timeout for the call to the engine API. For example, if set to 5000 and no response has been received from the engine API within 5 seconds, an error will be thrown. Milliseconds   |
+| extract.concurrentTasks | Number of apps that will be sent in parallel to the engine API. Use with caution! You can easily affect performance of a Sense environment by setting this parameter too high. Start setting it low, then increase it while at the same time monitoring the realtime performance (mainly CPU) of the target server, to ensure it is not too heavily loaded by the data extraction tasks. |
+| extract.enableScheduledExecution | true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit |
+| lineageExtract.enable | Controls whether to extract lineage info or not. true/false |
+| lineageExtract.exportDir | Directory where lineage files should be stored. |
+| lineageExtract.maxLengthDiscriminator | Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file |
+| lineageExtract.maxLengthStatement | Max characters of statement field (e.g. SQL statement) to store in per-app lineage disk file |
+| scriptExtract.enable | Controls whether load scripts are extracted to text files or not. true/false |
+| scriptExtract.exportDir | Directory where script files will be stored. |
+| dataConnectionExtract.enable | Controls whether data connections are extracted to JSON file not. true/false |
+| dataConnectionExtract.exportDir | Directory where data connections JSON file will be stored. |
+| configEngine.engineVersion | Version of the Qlik Sense engine running on the target server. Version 12.612.0 should work with any Qlik Sense server from 2020 February and later. |
+| configEngine.host | Host name, fully qualified domain name (=FQDN) or IP address of Qlik Sense Enterprise server where Qlik Engine Service (QES) is running. |
+| configEngine.port | Should be 4747, unless configured otherwise in the QMC. |
+| configEngine.useSSL | Set to true if https is used to communicate with the engine API. |
+| configEngine.headers.X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. `UserDirectory=Internal;UserId=sa_repository` is a system account. |
+| configEngine.rejectUnauthorized | If set to true, strict checking will be done with respect to ssl certificates etc when connecting to the engine API. |
+| configQRS.authentication | Method to authenticate with Qlik Repository Service. Valid options are: `certificates`. |
+| configQRS.host | Host name, fully qualified domain name (=FQDN) or IP address of Qlik Sense Enterprise server where Qlik Repository Service (QRS) is running. |
+| configQRS.port | Should be 4242, unless configured otherwise in the QMC. |
+| configQRS.useSSL | Set to true if https is used to communicate with the repository API. | |
+| configQRS.headers.X-Qlik-User | Sense user directory and user to be used when connecting to the engine API. `UserDirectory=Internal;UserId=sa_repository` is a system account. |
+| cert.clientCerCA | Root certificate, as exported from the QMC |
+| cert.clientCert | Client certificate, as exported from the QMC |
+| cert.clientCertKey | Client certificate key, as exported from the QMC |
 
 ## Logging
 

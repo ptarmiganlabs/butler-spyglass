@@ -14,7 +14,7 @@ module.exports.getDataConnections = async function getDataConnections() {
     try {
         // Create CSV write for storing current app's lineage to disk
         const dataconnectionsWriter = createCsvWriter({
-            path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataconnection.exportDir')}/dataconnections.csv`)),
+            path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.csv`)),
             header: [
                 {
                     id: 'id',
@@ -65,7 +65,7 @@ module.exports.getDataConnections = async function getDataConnections() {
             // Save JSON to disk
             try {
                 fs.writeFileSync(
-                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataconnection.exportDir')}/dataconnections.json`)),
+                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.json`)),
                     JSON.stringify(dataconnections.body, 0, 2)
                 );
                 logger.verbose(`Done writing data connections to JSON file on disk.`);
