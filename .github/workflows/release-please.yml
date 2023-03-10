@@ -204,7 +204,7 @@ jobs:
           artifacts: ./${{ needs.release-please.outputs.release_tag_name }}-macos.zip
           token: ${{ github.token }}
 
-      - name: Tidy up before existing
+      - name: Tidy up before exiting
         run: |
           rm -r release-macos
 
@@ -259,7 +259,7 @@ jobs:
           artifacts: ./${{ needs.release-please.outputs.release_tag_name }}-linux.zip
           token: ${{ github.token }}
 
-      - name: Tidy up before existing
+      - name: Tidy up before exiting
         run: |
           rm -r release-linux
 
@@ -339,7 +339,7 @@ jobs:
           artifacts: release-win/${{ needs.release-please.outputs.release_tag_name }}-win.zip
           token: ${{ github.token }}
 
-      - name: Tidy up before existing
+      - name: Tidy up before exiting
         run: |
           dir
           Remove-Item -path ./release-win -recurse
