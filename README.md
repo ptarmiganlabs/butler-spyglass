@@ -1,6 +1,6 @@
 # Butler Spyglass
 
-[![Build status](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml/badge.svg?branch=master)](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml)  
+[![Build status](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml/badge.svg?branch=master)](https://github.com/ptarmiganlabs/butler-spyglass/actions/workflows/release-please.yml)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
 Butler Spyglass is a tool for extracting metadata from Qlik Sense applications.
