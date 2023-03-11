@@ -29,7 +29,7 @@ ButlerSpyglass:
 
   configEngine:
     engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
-    host: 192.168.100.109
+    host: sense.ptarmiganlabs.com
     port: 4747
     useSSL: true
     headers:
