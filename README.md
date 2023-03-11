@@ -258,7 +258,7 @@ ButlerSpyglass:
     headers:
       X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
 
-# Certificates to use when connecting to Sense. Get these from the Certificate Export in QMC.
+  # Certificates to use when connecting to Sense. Get these from the Certificate Export in QMC.
   cert:
     ca: /nodeapp/config/certificate/root.pem
     cert: /nodeapp/config/certificate/client.pem
