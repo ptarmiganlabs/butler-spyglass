@@ -21,8 +21,9 @@ The tool will
     - [Load scripts](#load-scripts)
   - [What's new](#whats-new)
   - [Extracted data](#extracted-data)
-    - [Extracting load scripts](#extracting-load-scripts)
-    - [Extracting data lineage](#extracting-data-lineage)
+    - [Data lineage](#data-lineage-1)
+    - [Load scripts](#load-scripts-1)
+    - [Data connection definitions](#data-connection-definitions)
   - [Config file](#config-file)
   - [Logging](#logging)
   - [Running Butler Spyglass](#running-butler-spyglass)
@@ -31,7 +32,7 @@ The tool will
   - [Output files](#output-files)
     - [Data lineage output files](#data-lineage-output-files)
     - [Load script output files](#load-script-output-files)
-    - [Load script output files](#load-script-output-files-1)
+    - [Data connections output files](#data-connections-output-files)
   - [Analysing the generated files](#analysing-the-generated-files)
   - [Security / Disclosure](#security--disclosure)
 
@@ -56,31 +57,36 @@ Butler Spyglass solves all the scenarios above by extracting both data lineage i
 
 Each release on the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases) contains info what is new, if there are any breaking changes that require special attention etc.
 
-Older versions are described in the original [change log](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/changelog.md).
+The [change log](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/changelog.md) also keeps a complete log of all details from all releases.
 
 ## Extracted data
 
 Extracted information for each app is
 
-1. Load script
-2. Data lineage, i.e. what data sources are used by the app in question.
+1. Data lineage, i.e. what data sources are used by the app in question.
+2. Load scripts.
 
 In addition to the above, complete definitions (except credentials, passwords etc) for all data connections in the Qlik Sense server are extracted and stored as CSV and JSON files.
 
-### Extracting load scripts
+### Data lineage
 
-Whether or not to extract app load scripts is controlled by the configuration parameter `ButlerSpyglass.scriptExtract.enableScriptExtract`. Set to true/false as needed.
+Whether or not to extract data lineage info for apps is controlled by the configuration parameter `ButlerSpyglass.lineageExtract.enable`. Set to true/false as needed.
 
-Each app's load script is extracted and stored in a file in a folder as defined by the `ButlerSpyglass.scriptExtract.exportDir` configuration parameter.
-Each file will be use the app ID as file name.
-
-### Extracting data lineage
-
-Whether or not to extract data lineage info for apps is controlled by the configuration parameter `ButlerSpyglass.lineageExtract.enableLineageExtract`. Set to true/false as needed.
-
-Data lineage information is stored in a single CSV (`lineage.csv`) file in a folder defined by the `ButlerSpyglass.lineageExtract.exportDir` configuration parameter.
+Data lineage information is stored in CSV and JSON files, one pair for each Sense app. Files are stored in the directory defined in `ButlerSpyglass.lineageExtract.exportDir`.
 
 More info about discriminators and statements is found [here](https://help.qlik.com/en-US/sense-developer/February2023/Subsystems/EngineJSONAPI/Content/models-lineageinfo.htm).
+
+### Load scripts
+
+Whether or not to extract app load scripts is controlled by the configuration parameter `ButlerSpyglass.scriptExtract.enable`. Set to true/false as needed.
+
+Each app's load script is extracted and stored in a `<appid>.qvs` file in a folder as defined by the `ButlerSpyglass.scriptExtract.exportDir` configuration parameter.
+
+### Data connection definitions
+
+Whether or not to extract data connection definitions is controlled by the config parameter `ButlerSpyglass.dataConnectionExtract.enable`. Set to true/false as needed.
+
+Data connections are stored to `dataconnection.json` and `dataconnection.csv` in the directory specified by `ButlerSpyglass.dataConnectionExtract.exportDir`.
 
 ## Config file
 
@@ -133,14 +139,14 @@ Log files on disk are rotated daily. They are kept for 30 days, after which the 
 
 ## Running Butler Spyglass
 
-There is no installer, just download the desired binary from the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases).
+There is no installer, just download the binary for your OS from the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases).
 
 Then edit the config file as needed (there is a template config file [here](https://github.com/ptarmiganlabs/butler-spyglass/blob/master/config/production-template.yaml)).  
-Place the config file in the config subdirectory in the directory where Butler Spyglass was started.  
+Place the config file in the `config` subdirectory in the directory where Butler Spyglass was started.  
 For example, if `butler-spyglass.exe` is stored in `d:\tools\butler-spyglass`, the config file should be stored in `d:\tools\butler-spyglass\config`.
 
 You must also set the NODE_ENV environment variable to the name of the config file.  
-For example, if your config file is called `my-config-file.yaml` the NODE_ENV environment variable should be set to `my-config-file`.  
+For example, if your config file is `my-config-file.yaml` the NODE_ENV environment variable should be set to `my-config-file`.  
 Butler Spyglass uses that variable to determine where to look for the config file.
 
 ### Run from command line
@@ -150,7 +156,7 @@ PS C:\tools\butler-spyglass> .\butler-spyglass.exe
 2023-03-10T17:16:57.144Z info: --------------------------------------
 2023-03-10T17:16:57.144Z info: | butler-spyglass
 2023-03-10T17:16:57.144Z info: |
-2023-03-10T17:16:57.144Z info: | Version    : 1.2.1
+2023-03-10T17:16:57.144Z info: | Version    : 2.0.0
 2023-03-10T17:16:57.144Z info: | Log level  : info
 2023-03-10T17:16:57.144Z info: |
 2023-03-10T17:16:57.144Z info: --------------------------------------
@@ -178,10 +184,11 @@ If `ButlerSpyglass.enableScheduledExecution` in the config file is set to `true`
 
 ### Run using Docker
 
-Using Docker is arguably the easiest, most scalable and in general "enterprise grade" way to deploy Butler Spyglass. A few things to keep in mind though:
+Using Docker is convenient and easy if you have an existing Docker or Kubernetes environment and know how to use those tools.  
+A few things to keep in mind though:
 
-* The NODE_ENV variable in the `docker-compose.yml` file controls what config file will be used. If NODE_ENV is set to *production*, the file `./config/production.yaml` will be used.
-* The output directories defined in the `./config/production.yaml` file must match the volume mapping in the docker-compose.yml file.  
+- The NODE_ENV variable in the `docker-compose.yml` file controls what config file will be used. If NODE_ENV is set to *production*, the file `./config/production.yaml` will be used.
+- The output directories defined in the `./config/production.yaml` file must match the volume mapping in the docker-compose.yml file.  
   I.e. if the config file defines the output directories as `./out/lineage` and `./out/script`, the docker-compose file must map the containers /nodeapp/out to an existing directory on the Docker host, for example
 
     `./out:/nodeapp/out`.
@@ -209,34 +216,50 @@ Looking at the directory structure and the config files, they could look as foll
 ---
 ButlerSpyglass:
   # Logging configuration
-  logLevel: info          # Log level. Possible log levels are silly, debug, verbose, info, warn, error
-  fileLogging: true       # true/false to enable/disable logging to disk file
-  logDirectory: logs      # Subdirectory where log files are stored
+  logLevel: info              # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+  fileLogging: true           # true/false to enable/disable logging to disk file
+  logDirectory: logs          # Subdirectory where log files are stored
 
   # Extract configuration
   extractFrequency: 60000     # Time between extraction runs. Milliseconds
   extractItemInterval: 500    # Time between requests to the engine API. Milliseconds
   extractItemTimeout: 5000    # Timeout for calls to the engine API. Milliseconds
   concurrentTasks: 1          # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
-  enableScheduledExecution: true   # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
+  enableScheduledExecution: true  # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
 
-  lineage:
-    enableLineageExtract: true
-    exportDir: ./out/lineage
-    maxLengthDiscriminator: 1000       # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
-    maxLengthStatement: 1000           # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
+  lineageExtract:
+    enable: true                  # Should data lineage files be created?
+    exportDir: ./out/lineage      # Directory where data lineage files will be stored.
+    maxLengthDiscriminator: 1000  # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
+    maxLengthStatement: 1000      # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
 
-  script:
-    enableScriptExtract: true
-    exportDir: ./out/script
+  scriptExtract:
+    enable: true                  # Should app load scripts be saved to files?
+    exportDir: ./out/script       # Directory where load script files will be stored.
+
+  dataConnectionExtract:
+    enable: true                      # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
+    exportDir: ./out/dataconnection   # Directory where data connection JSON definitions file will be stored.
 
   configEngine:
-    engineVersion: 12.170.2        # Qlik Associative Engine version to use with Enigma.js. ver 12.170.2 works with Feb 2019
-    server: sense.ptarmiganlabs.net
+    engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
+    server: sense.ptarmiganlabs.com
     serverPort: 4747
     useSSL: true
     headers:
       X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+    rejectUnauthorized: false
+
+  configQRS: 
+    authentication: certificates
+    host: sense.ptarmiganlabs.com
+    port: 4242
+    useSSL: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+
+# Certificates to use when connecting to Sense. Get these from the Certificate Export in QMC.
+  cert:
     ca: /nodeapp/config/certificate/root.pem
     cert: /nodeapp/config/certificate/client.pem
     key: /nodeapp/config/certificate/client_key.pem
@@ -394,7 +417,7 @@ Autogenerate 1000
  Comment Field Dim1 With "This is a field comment";
 ```
 
-### Load script output files
+### Data connections output files
 
 All data connections for the entire Qlik Sense server are exported to JSON and CSV files:
 
