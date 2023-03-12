@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.3](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.2...butler-spyglass-v2.0.3) (2023-03-12)
+
+
+### Build pipeline
+
+* Add Docker healthcheck ([ea0518e](https://github.com/ptarmiganlabs/butler-spyglass/commit/ea0518e3d2771fb4a51ab0a9d3d8d065ceec939a))
+* Add missing Docker build files ([ea0518e](https://github.com/ptarmiganlabs/butler-spyglass/commit/ea0518e3d2771fb4a51ab0a9d3d8d065ceec939a)), closes [#23](https://github.com/ptarmiganlabs/butler-spyglass/issues/23)
+
 ## [2.0.2](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.1...butler-spyglass-v2.0.2) (2023-03-12)
 
 
