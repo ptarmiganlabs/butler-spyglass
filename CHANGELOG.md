@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.3...butler-spyglass-v2.0.4) (2023-03-12)
+
+
+### Build pipeline
+
+* Failing Docker image build ([ff8d030](https://github.com/ptarmiganlabs/butler-spyglass/commit/ff8d030799f9d9e2faa7a3eb2bfb8319dc0c83d3))
+
 ## [2.0.3](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.2...butler-spyglass-v2.0.3) (2023-03-12)
 
 
