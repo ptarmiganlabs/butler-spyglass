@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.2](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.1...butler-spyglass-v2.0.2) (2023-03-12)
+
+
+### Documentation
+
+* Add status badge to readme file ([f060f9a](https://github.com/ptarmiganlabs/butler-spyglass/commit/f060f9a4a71a8e6be4eec67fcaef9c8b39ea1337))
+* Re-written most of docs wrt 2.x release ([1d7cb6d](https://github.com/ptarmiganlabs/butler-spyglass/commit/1d7cb6d353c6fc8ebc7a47d05c0e63080a094ef3))
+
+
+### Build pipeline
+
+* Disable MQTT messages from Docker build workflow ([f6b1712](https://github.com/ptarmiganlabs/butler-spyglass/commit/f6b17123b08e1566c20c2149add37fa2fe4954a8))
+
 ## [2.0.1](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.0...butler-spyglass-v2.0.1) (2023-03-10)
 
 
