@@ -26,6 +26,7 @@ The tool will
     - [Data connection definitions](#data-connection-definitions)
   - [Config file](#config-file)
   - [Logging](#logging)
+  - [Parallel extraction of lineage data](#parallel-extraction-of-lineage-data)
   - [Running Butler Spyglass](#running-butler-spyglass)
     - [Run from command line](#run-from-command-line)
     - [Run using Docker](#run-using-docker)
@@ -137,6 +138,29 @@ Logging to disk files can be turned on/off via the YAML config file.
 
 Log files on disk are rotated daily. They are kept for 30 days, after which the one(s) older than 30 days are deleted.
 
+## Parallel extraction of lineage data
+
+Lineage data is stored within each Sense app.  
+Each app from which lineage should be extracted must therefore be accessed.
+
+The obvious approach is to get lineage data from one app, then move on to the next app.  
+This can take a long time on servers with thousands of apps though, Butler Spyglass therefore offers parallel extraction of lineage data.  
+Some settings in the config file offer fine-tuning of the extraction process:
+
+- `ButlerSpyglass.extract.concurrentTasks` controls how many apps will be processed in parallel.
+- `ButlerSpyglass.extract.itemInterval` controls how long a pause there will be before starting processing of another app.
+- `ButlerSpyglass.extract.itemTimeout` is the timeout after which Butler Spyglass will give up for a specific app.
+
+An error will occur if lineage or load script for some reason cannot be extracted for an app.
+
+Butler Spyglass keeps track of the *ratio* of successful extracts.  
+For example, the following text in the log means that all (100%) extracts have so far been successful:
+
+    Extracting metadata (#5, overall success rate 100%): fc90c7f0-f498-4780-8864-2f78f449d9e9 <<>> ✅ Qlik help pages
+
+If the number is below 100% it means that one or more lineage/load script extracts failed.  
+There should be some info in the logs about which apps were affected and maybe also clues to what happened.
+
 ## Running Butler Spyglass
 
 There is no installer, just download the binary for your OS from the [releases page](https://github.com/ptarmiganlabs/butler-spyglass/releases).
@@ -151,12 +175,94 @@ Butler Spyglass uses that variable to determine where to look for the config fil
 
 ### Run from command line
 
+The tree structure looks like this:
+
 ```powershell
-PS C:\tools\butler-spyglass> .\butler-spyglass.exe
+tree /F
+```
+
+```
+Folder PATH listing
+Volume serial number is ....-....
+C:.
+│   butler-spyglass.exe
+│
+└───config
+        production.yaml
+```
+
+The `NODE_ENV` environment variable is set to `production` and the config file is called `production.yaml`.  
+In this example the certificates are stored elsewhere (not in a subfolder of the current folder). That's fine as long as the paths are correct.
+
+```powershell
+type .\config\production.yaml
+```
+
+```
+---
+ButlerSpyglass:
+  # Logging configuration
+  logLevel: info                    # Log level. Possible log levels are silly, debug, verbose, info, warn, error
+  fileLogging: true                 # true/false to enable/disable logging to disk file
+  logDirectory: ./log               # Subdirectory where log files are stored. Either absolute path or relative to where Butler Spyglass was started
+
+  # Extract configuration
+  extract:
+    frequency: 60000000             # Time between extraction runs. Milliseconds
+    itemInterval: 250               # Time between requests to the engine API. Milliseconds
+    itemTimeout: 15000              # Timeout for calls to the engine API. Milliseconds
+    concurrentTasks: 3              # Simultaneous calls to the engine API. Example: If set to 3, this means 3 calls will be done at the same time, every extractItemInterval milliseconds.
+    enableScheduledExecution: false # true=start an extraction run extractFrequency milliseconds after the previous one finished. false=only run once, then exit
+
+  lineageExtract:
+    enable: true                    # Should data lineage files be created?
+    exportDir: ./out/lineage        # Directory where data lineage files will be stored.
+    maxLengthDiscriminator: 1000    # Max characters of discriminator field (=source or destination of data) to store in per-app lineage disk file
+    maxLengthStatement: 1000        # Max characters of statemenf field (e.g. SQL statement) to store in per-app lineage disk file
+
+  scriptExtract:
+    enable: true                    # Should app load scripts be saved to files?
+    exportDir: ./out/script         # Directory where load script files will be stored.
+
+  dataConnectionExtract:
+    enable: true                    # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
+    exportDir: ./out/dataconnection # Directory where data connection JSON definitions file will be stored.
+
+  configEngine:
+    engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later
+    host: 192.168.100.109
+    port: 4747
+    useSSL: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+    rejectUnauthorized: false
+
+  configQRS:
+    authentication: certificates
+    host: 192.168.100.109
+    port: 4242
+    useSSL: true
+    headers:
+      X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
+
+  # Certificates to use when connecting to Sense. Get these from the Certificate Export in QMC.
+  cert:
+    clientCert: C:\tools\ctrl-q\cert\client.pem
+    clientCertKey: C:\tools\ctrl-q\cert\client_key.pem
+    clientCertCA: C:\tools\ctrl-q\cert\root.pem
+```
+
+Now let's run Butler Spyglass itself:
+
+```powershell
+.\butler-spyglass.exe
+```
+
+```powershell
 2023-03-10T17:16:57.144Z info: --------------------------------------
 2023-03-10T17:16:57.144Z info: | butler-spyglass
 2023-03-10T17:16:57.144Z info: |
-2023-03-10T17:16:57.144Z info: | Version    : 2.0.0
+2023-03-10T17:16:57.144Z info: | Version    : 2.0.1
 2023-03-10T17:16:57.144Z info: | Log level  : info
 2023-03-10T17:16:57.144Z info: |
 2023-03-10T17:16:57.144Z info: --------------------------------------
@@ -243,8 +349,8 @@ ButlerSpyglass:
 
   configEngine:
     engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
-    server: sense.ptarmiganlabs.com
-    serverPort: 4747
+    host: sense.ptarmiganlabs.com
+    port: 4747
     useSSL: true
     headers:
       X-Qlik-User: UserDirectory=Internal;UserId=sa_repository
