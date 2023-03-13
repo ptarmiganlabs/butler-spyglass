@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.4...butler-spyglass-v2.1.0) (2023-03-13)
+
+
+### Features
+
+* Add app filters to config file ([d7fe89a](https://github.com/ptarmiganlabs/butler-spyglass/commit/d7fe89a1dcc0dde342cd05749af622b7552dc9b8)), closes [#67](https://github.com/ptarmiganlabs/butler-spyglass/issues/67)
+
 ## [2.0.4](https://github.com/ptarmiganlabs/butler-spyglass/compare/butler-spyglass-v2.0.3...butler-spyglass-v2.0.4) (2023-03-12)
 
 
