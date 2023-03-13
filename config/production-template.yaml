@@ -27,6 +27,20 @@ ButlerSpyglass:
     enable: true                    # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
     exportDir: ./out/dataconnection # Directory where data connection JSON definitions file will be stored.
 
+  # Filter out a selection of apps for which lineage and/or load scripts should be extracted.
+  # Filters are additive.
+  # If no filters are specified lineage/script will be extracted for all apps in the Sense server.
+  appFilter:
+    appNameExact:                   # Apps for which lineage/script should be extract. Exact matches are done on app name. 
+      - User retention
+      - Butler 8.4 demo app
+    appId:                          # App IDs for which lineage/script should be extracted.
+      - d1ace221-b80e-4754-98ea-3d0a9ebc9632
+      - bf4cbb34-cd3c-4fc4-b69d-6fa61d5a270e
+    appTag:                         # Lineage/script will be extracted for apps having these tags set.
+      - Test data
+      - apiCreated
+      
   configEngine:
     engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
     host: sense.ptarmiganlabs.com
