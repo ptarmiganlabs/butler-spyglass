@@ -1,14 +1,13 @@
 const config = require('config');
 const fs = require('fs-extra');
 const Queue = require('better-queue');
-const enigma = require('enigma.js');
-const WebSocket = require('ws');
 const upath = require('upath');
 
 // Load our own code
-const extractApp = require('./src/extract_app');
+const { appExtractMetadata, resetExtractedAppCount } = require('./src/extract_app');
 const { getDataConnections } = require('./src/get_dataconnection');
 const { logger, getLoggingLevel } = require('./src/logger');
+const { getAppsToProcess } = require('./src/qrs');
 
 // Get app version from package.json file
 const appVersion = require('./package.json').version;
@@ -17,26 +16,6 @@ const appName = require('./package.json').name;
 // Are we running as standalone app or not?
 const isPkg = typeof process.pkg !== 'undefined';
 const execPath = isPkg ? upath.dirname(process.execPath) : __dirname;
-
-// Helper function to read the contents of the certificate files:
-const readCert = (filename) => fs.readFileSync(filename);
-
-//  Engine config
-const configEngine = {
-    engineVersion: config.get('ButlerSpyglass.configEngine.engineVersion'),
-    host: config.get('ButlerSpyglass.configEngine.host'),
-    port: config.get('ButlerSpyglass.configEngine.port'),
-    isSecure: config.get('ButlerSpyglass.configEngine.useSSL'),
-    headers: config.get('ButlerSpyglass.configEngine.headers'),
-    ca: readCert(config.get('ButlerSpyglass.cert.clientCertCA')),
-    cert: readCert(config.get('ButlerSpyglass.cert.clientCert')),
-    key: readCert(config.get('ButlerSpyglass.cert.clientCertKey')),
-    rejectUnauthorized: config.get('ButlerSpyglass.configEngine.rejectUnauthorized'),
-};
-
-// Set up enigma.js configuration
-// eslint-disable-next-line import/no-dynamic-require
-const qixSchema = require(`enigma.js/schemas/${configEngine.engineVersion}`);
 
 logger.info(`--------------------------------------`);
 logger.info(`| ${appName}`);
@@ -75,7 +54,7 @@ const q = new Queue(
 
         // eslint-disable-next-line no-underscore-dangle
         const _self = this;
-        const newLocal = extractApp.appExtractMetadata(_self, q, taskItem, cb);
+        const newLocal = appExtractMetadata(_self, q, taskItem, cb);
 
         // cb();
     },
@@ -95,83 +74,51 @@ const q = new Queue(
 // })
 
 // Define function to be scheduled
-const scheduledExtract = function scheduledExtract() {
+const scheduledExtract = async function scheduledExtract() {
     // Write separator to separate this run from the previous one
     logger.info(`--------------------------------------`);
     logger.info(`Extraction run started`);
-
-    // Get data connections
-    if (config.get('ButlerSpyglass.dataConnectionExtract.enable') === true) {
-        getDataConnections();
-    }
 
     // Empty output folders
     fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.lineageExtract.exportDir')}/`)));
     fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.scriptExtract.exportDir')}/`)));
     fs.emptyDirSync(upath.resolve(upath.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/`)));
 
-    // create a new session
-    const configEnigma = {
-        schema: qixSchema,
-        url: `wss://${configEngine.host}:${configEngine.port}`,
-        createSocket: (url) =>
-            new WebSocket(url, {
-                ca: [configEngine.ca],
-                key: configEngine.key,
-                cert: configEngine.cert,
-                headers: {
-                    'X-Qlik-User': 'UserDirectory=Internal;UserId=sa_repository',
-                },
-                rejectUnauthorized: false,
-            }),
-    };
+    // Get data connections
+    if (config.get('ButlerSpyglass.dataConnectionExtract.enable') === true) {
+        await getDataConnections(execPath);
+    }
 
-    const sessionAppList = enigma.create(configEnigma);
+    // Create list of apps for which lineage and/or load scripts should be extracted.
+    // If at least one filter is specified in the config file that filter will be used.
+    // If no filters are specified all apps that the user has access to will be processed.
 
-    sessionAppList
-        .open()
-        .then((global) => {
-            // We can now interact with the global object, for example get the document list.
-            global
-                .getDocList()
-                .then((list) => {
-                    logger.silly(`Apps on this Engine that the configured user can open: ${JSON.stringify(list, null, 2)}`);
-                    logger.info(`Number of apps on server: ${list.length}`);
+    const appsToProcess = await getAppsToProcess(logger, config, execPath);
 
-                    // Reset # processed apps to zero
-                    extractApp.resetExtractedAppCount();
+    logger.info(`Number of apps that will be processed: ${appsToProcess.length}`);
+    logger.silly(`Apps on this server that will be processed: ${JSON.stringify(appsToProcess, null, 2)}`);
 
-                    // Send tasks to queue
-                    list.forEach((element) => {
-                        q.push(element).on('failed', (err) => {
-                            // Task failed!
-                            logger.error(`Task FAILED: ${err}`);
-                        });
-                    });
+    // Reset # processed apps to zero
+    resetExtractedAppCount();
 
-                    q.on('progress', (progress) => {
-                        // logger.verbose(`========== Task progress: ${taskId}, ${completed}/${total} done`);
-                        logger.verbose(`========== Task progress: ${progress}`);
-                        // progress.eta - human readable string estimating time remaining
-                        // progress.pct - % complete (out of 100)
-                        // progress.complete - # completed so far
-                        // progress.total - # for completion
-                        // progress.message - status message
-                    });
-                })
-
-                .then(() => {
-                    try {
-                        sessionAppList.close();
-                    } catch (ex) {
-                        logger.error(`Error when closing sessionAppList: ${ex}`);
-                    }
-                });
-        })
-        .catch((error) => {
-            logger.error('Failed to open session and/or retrieve the app list:', error);
-            process.exit(1);
+    // eslint-disable-next-line no-restricted-syntax
+    // Send tasks to queue
+    appsToProcess.forEach((element) => {
+        q.push(element).on('failed', (err) => {
+            // Task failed!
+            logger.error(`Task FAILED: ${err}`);
         });
+    });
+
+    q.on('progress', (progress) => {
+        // logger.verbose(`========== Task progress: ${taskId}, ${completed}/${total} done`);
+        logger.verbose(`========== Task progress: ${progress}`);
+        // progress.eta - human readable string estimating time remaining
+        // progress.pct - % complete (out of 100)
+        // progress.complete - # completed so far
+        // progress.total - # for completion
+        // progress.message - status message
+    });
 };
 
 q.on('task_finish', (taskId, result) => {
