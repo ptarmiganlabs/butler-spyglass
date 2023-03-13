@@ -1,8 +1,11 @@
 const fs = require('fs-extra');
 const config = require('config');
 const path = require('path');
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const QrsInteract = require('qrs-interact');
+const axios = require('axios');
+const { promises: Fs } = require('fs');
+const { stringify } = require('csv-stringify');
+
+const { setupQRSConnection } = require('./qrs');
 
 // Load our own code
 const { logger } = require('./logger');
@@ -10,77 +13,52 @@ const { logger } = require('./logger');
 // -------------
 // Exports
 // -------------
-module.exports.getDataConnections = async function getDataConnections() {
+module.exports.getDataConnections = async function getDataConnections(execPath) {
     try {
-        // Create CSV write for storing current app's lineage to disk
-        const dataconnectionsWriter = createCsvWriter({
-            path: path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.csv`)),
-            header: [
-                {
-                    id: 'id',
-                    title: 'Id',
-                },
-                {
-                    id: 'name',
-                    title: 'Name',
-                },
-                {
-                    id: 'connectionstring',
-                    title: 'Connection string',
-                },
-                {
-                    id: 'type',
-                    title: 'Type',
-                },
-            ],
-            append: false,
+        // Get certificates
+        const fileCert = path.resolve(execPath, config.get('ButlerSpyglass.cert.clientCert'));
+        const fileCertKey = path.resolve(execPath, config.get('ButlerSpyglass.cert.clientCertKey'));
+
+        // Build Axios config
+        const axiosConfig = await setupQRSConnection(logger, config, {
+            method: 'get',
+            fileCert,
+            fileCertKey,
+            path: '/qrs/dataconnection',
         });
 
-        const qrsInstance = new QrsInteract({
-            hostname: config.get('ButlerSpyglass.configQRS.host'),
-            portNumber: config.get('ButlerSpyglass.configQRS.port'),
-            headers: config.get('ButlerSpyglass.configQRS.headers'),
-            certificates: {
-                certFile: config.get('ButlerSpyglass.cert.clientCert'),
-                keyFile: config.get('ButlerSpyglass.cert.clientCertKey'),
-            },
-        });
+        const result = await axios.request(axiosConfig);
+        if (result.status === 200 && result.data.length > 0) {
+            // At least one data connection found. Add it/them to the list of apps to extract lineage/script for
+            logger.debug(`DATA CONNECTION: Got response: ${result.status}`);
+            logger.info(`Got ${result.data.length} data connections from QRS`);
 
-        // Get info about all data connections
-        try {
-            const dataconnections = await qrsInstance.Get('dataconnection');
-            logger.debug(`DATA CONNECTION: Got response: ${dataconnections.statusCode}`);
+            // Remove username and password
+            const dataConnections = result.data.map(({ password, username, ...keepAttrs }) => keepAttrs);
+
+            // Create CSV string
+            const buffer = stringify(dataConnections, { header: true });
 
             // Save CSV to disk
-            dataconnectionsWriter
-                .writeRecords(dataconnections.body)
-                .then(() => {
-                    logger.verbose(`Done writing ${dataconnections.length} data connection records to CSV disk file`);
-                })
-                .catch((error) => {
-                    logger.error(`Failed to write data connections to CSV file on disk (make sure the output directory exists!): ${error}`);
-                    process.exit(1);
-                });
+            await Fs.writeFile(
+                path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.csv`)),
+                buffer
+            );
+            logger.info(`Done writing ${dataConnections.length} data connection records to CSV disk file`);
 
             // Save JSON to disk
-            try {
-                fs.writeFileSync(
-                    path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.json`)),
-                    JSON.stringify(dataconnections.body, 0, 2)
-                );
-                logger.verbose(`Done writing data connections to JSON file on disk.`);
-            } catch (err) {
-                logger.error(`Failed to write data connection file to JSON file on disk (make sure the output directory exists!): ${err}`);
-                process.exit(3);
-            }
-
-            logger.info('Done writing data connection metadata to disk');
-        } catch (err) {
-            logger.error(`DATA CONNECTION: Error while getting data connections: ${JSON.stringify(err, null, 2)}`);
-            const newLocal = 'Error while getting data connections';
-            throw newLocal;
+            fs.writeFileSync(
+                path.resolve(path.normalize(`${config.get('ButlerSpyglass.dataConnectionExtract.exportDir')}/dataconnections.json`)),
+                JSON.stringify(dataConnections, 0, 2)
+            );
+            logger.info(`Done writing ${dataConnections.length} data connection records to JSON disk file`);
+        } else {
+            // No apps. That's odd... but maybe there are no apps in the server, for the user used?
+            logger.info('No apps found in Sense server');
         }
     } catch (err) {
-        logger.error(`DATA CONNECTION: Error while conecting to QRS: ${JSON.stringify(err, null, 2)}`);
+        logger.error(`DATA CONNECTION: Error while getting data connections: ${JSON.stringify(err, null, 2)}`);
+        const newLocal = 'Error while getting data connections';
+        throw newLocal;
     }
 };

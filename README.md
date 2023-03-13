@@ -25,6 +25,7 @@ The tool will
     - [Load scripts](#load-scripts-1)
     - [Data connection definitions](#data-connection-definitions)
   - [Config file](#config-file)
+    - [App filters](#app-filters)
   - [Logging](#logging)
   - [Parallel extraction of lineage data](#parallel-extraction-of-lineage-data)
   - [Running Butler Spyglass](#running-butler-spyglass)
@@ -115,6 +116,9 @@ All parameters must be defined in the config file - run time errors will occur o
 | scriptExtract.exportDir | Directory where script files will be stored. |
 | dataConnectionExtract.enable | Controls whether data connections are extracted to JSON file not. true/false |
 | dataConnectionExtract.exportDir | Directory where data connections JSON file will be stored. |
+| appFilter.appNameExact | List of apps for which lineage and/or load scripts should be extracted. An exact match on app name is done. |
+| appFilter.appId | App ids for which lineage and/or load scripts should be extracted. |
+| appFilter.appTag | Lineage and/or load scripts will be extracted for apps with these tags set. |
 | configEngine.engineVersion | Version of the Qlik Sense engine running on the target server. Version 12.612.0 should work with any Qlik Sense server from 2020 February and later. |
 | configEngine.host | Host name, fully qualified domain name (=FQDN) or IP address of Qlik Sense Enterprise server where Qlik Engine Service (QES) is running. |
 | configEngine.port | Should be 4747, unless configured otherwise in the QMC. |
@@ -129,6 +133,10 @@ All parameters must be defined in the config file - run time errors will occur o
 | cert.clientCerCA | Root certificate, as exported from the QMC |
 | cert.clientCert | Client certificate, as exported from the QMC |
 | cert.clientCertKey | Client certificate key, as exported from the QMC |
+
+### App filters
+
+All apps will be processed (=lineage and/or load scripts extracted ) if no app filters at all are set in the config file.
 
 ## Logging
 
@@ -228,6 +236,20 @@ ButlerSpyglass:
     enable: true                    # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
     exportDir: ./out/dataconnection # Directory where data connection JSON definitions file will be stored.
 
+  # Filter out a selection of apps for which lineage and/or load scripts should be extracted.
+  # Filters are additive.
+  # If no filters are specified lineage/script will be extracted for all apps in the Sense server.
+  appFilter:
+    appNameExact:                   # Apps for which lineage/script should be extract. Exact matches are done on app name. 
+      - User retention
+      - Butler 8.4 demo app
+    appId:                          # App IDs for which lineage/script should be extracted.
+      - d1ace221-b80e-4754-98ea-3d0a9ebc9632
+      - bf4cbb34-cd3c-4fc4-b69d-6fa61d5a270e
+    appTag:                         # Lineage/script will be extracted for apps having these tags set.
+      - Test data
+      - apiCreated
+      
   configEngine:
     engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later
     host: 192.168.100.109
@@ -347,6 +369,20 @@ ButlerSpyglass:
     enable: true                      # Should data connections definitions be saved to files? One JSON file with all data connections will be created.
     exportDir: ./out/dataconnection   # Directory where data connection JSON definitions file will be stored.
 
+  # Filter out a selection of apps for which lineage and/or load scripts should be extracted.
+  # Filters are additive.
+  # If no filters are specified lineage/script will be extracted for all apps in the Sense server.
+  appFilter:
+    appNameExact:                   # Apps for which lineage/script should be extract. Exact matches are done on app name. 
+      - User retention
+      - Butler 8.4 demo app
+    appId:                          # App IDs for which lineage/script should be extracted.
+      - d1ace221-b80e-4754-98ea-3d0a9ebc9632
+      - bf4cbb34-cd3c-4fc4-b69d-6fa61d5a270e
+    appTag:                         # Lineage/script will be extracted for apps having these tags set.
+      - Test data
+      - apiCreated      
+
   configEngine:
     engineVersion: 12.612.0         # Qlik Associative Engine version to use with Enigma.js. ver 12.612.0 works with Feb 2020 and later 
     host: sense.ptarmiganlabs.com
@@ -428,24 +464,25 @@ This richness can be a problem though. If an inline table contains a thousand ro
 That's where the ```maxLengthDiscriminator``` config option (in the config YAML file) comes in handy. It makes it possible to set a limit to how many characters should be included for each row of lineage data.
 The setting is global for all apps, and applies to all rows of lineage data extracted from Sense.
 
-    AppId,Discriminator,Statement
-    10793a99-ef94-46ad-ae33-6a9efd260ab3,DSN=AUTOGENERATE;,
-    b7ef5bff-5a13-4d61-bae4-45b5fab722f9,RESIDENT RestConnectorMasterTable;,
-    916234f2-ffdb-4506-9c5b-193063da05ab,DSN=AUTOGENERATE;,
-    916234f2-ffdb-4506-9c5b-193063da05ab,DSN=https://bolin.su.se/data/stockholm/files/stockholm-historical-weather-observations-ver-1.0.2016/temperature/daily/raw/stockholma_daily_temp_obs_2013_2016_t1t2t3txtntm.txt;,
-    65c7ea3e-242d-423f-aa01-8acd24e4a7ed,DSN=AUTOGENERATE;,
-    8bd92672-8cf4-446e-8f5e-8c77205eefc3,DSN=AUTOGENERATE;,
-    0b94c6f9-82ce-40f1-a38c-8d277b01498e,RESIDENT RestConnectorMasterTable;,
-    0b94c6f9-82ce-40f1-a38c-8d277b01498e,{STORE - [Lib://App metadata/app_dump/20190125_apps.qvd] (qvd)};,
-    0b94c6f9-82ce-40f1-a38c-8d277b01498e,{STORE - [Lib://App metadata/app_dump/current_apps.qvd] (qvd)};,
-    0b94c6f9-82ce-40f1-a38c-8d277b01498e,monitor_apps_REST_app;,"RestConnectorMasterTable:
-    SQL SELECT
-        ""id"" ,
-        ""name"",
-        ""__KEY_root""
-    FROM JSON (wrap on) ""root"" PK ""__KEY_root"""
-    ,,
-    62dc4e60-8ba6-48af-9eac-9a076fd35819,DSN=AUTOGENERATE;,
+Here is an example lineage file. Note that both QVDs, SQL statements and inline tables are included in the lineage data. 
+
+    AppId,AppName,Discriminator,Statement
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,Healthcheck;,"RestConnectorMasterTable:
+        SQL SELECT 
+            ""col_1""
+        FROM CSV (header off, delimiter "","", quote """""""") ""CSV_source""
+        WITH CONNECTION(Url ""http://healthcheck.ptarmiganlabs.net:8000/ping/10a887bf-4580-4891-9c6f-2affbd380f16"")"
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,INLINE;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,RESIDENT __cityAliasesBase;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,RESIDENT __cityGeoBase;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,RESIDENT __countryAliasesBase;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,RESIDENT __countryGeoBase;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,\\fileshare1\testdata\meetupcom\categories.csv;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,\\pro\sensedata\staticcontent\appcontent\c840670c-7178-4a5e-8409-ba2da69127e2\cityaliases.qvd;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,\\pro\sensedata\staticcontent\appcontent\c840670c-7178-4a5e-8409-ba2da69127e2\citygeo.qvd;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,\\pro\sensedata\staticcontent\appcontent\c840670c-7178-4a5e-8409-ba2da69127e2\countryaliases.qvd;,
+    c840670c-7178-4a5e-8409-ba2da69127e2,Meetup.com,\\pro\sensedata\staticcontent\appcontent\c840670c-7178-4a5e-8409-ba2da69127e2\countrygeo.qvd;,
 
 ### Load script output files
 
