@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "prettier": "^2.8.4",
-    "snyk": "^1.1114.0"
+    "snyk": "^1.1133.0"
   },
   "scripts": {
     "format": "npm run format:prettier",
