@@ -294,21 +294,23 @@ jobs:
           name: binaries-win
           path: release-win/
 
-      - name: Sign the executable
-        env:
-          CODESIGN_PWD: ${{ secrets.WIN_CODESIGN_PWD}}
-          CODESIGN_INTERMEDIATE_BASE64: ${{ secrets.WIN_CODESIGN_INTERMEDIATE_BASE64 }}
-          CODESIGN_BASE64: ${{ secrets.WIN_CODESIGN_BASE64}}
-        run: |
-          New-Item -ItemType directory -Path certificate
-          Set-Content -Path certificate\certificate.txt -Value $env:CODESIGN_BASE64
-          certutil -decode certificate\certificate.txt certificate\certificate.pfx
-          Set-Content -Path certificate\intermediate.txt -Value $env:CODESIGN_INTERMEDIATE_BASE64
-          certutil -decode certificate\intermediate.txt certificate\intermediate.crt
-
-          & 'C:\Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/signtool.exe' sign /fd SHA256 /p $env:CODESIGN_PWD /ac certificate\intermediate.crt /f certificate\certificate.pfx /tr "http://timestamp.sectigo.com/rfc3161" /td sha256 release-win/butler-spyglass.exe
-          
-          Remove-Item -Recurse -Force certificate
+      # Windows code signing was removed on 2026-08-31.
+      #
+      # This step decoded a Sectigo PFX from the WIN_CODESIGN_BASE64,
+      # WIN_CODESIGN_INTERMEDIATE_BASE64 and WIN_CODESIGN_PWD org secrets and handed it to
+      # signtool. Those secrets have been deleted, and the certificate they carried
+      # (CN=Ptarmigan Labs AB, serial F58AD5AF041AFC342167937978A30C4B, Sectigo RSA Code
+      # Signing CA) expired 2024-03-24 - so the step could no longer produce a valid
+      # signature even if they were restored.
+      #
+      # The rest of the org moved to a Certum SimplySign smart card in butler-sos@23d3977f
+      # (2024-02-17): signtool reads WIN_CODESIGN_THUMBPRINT and runs on a runner labelled
+      # `win-code-sign` with an interactive SimplySign session open. This repo last released
+      # 2023-03-14 and was never migrated, which is why the old path survived here.
+      #
+      # To restore signing, copy the current step from butler-sos/.github/workflows/ci.yaml
+      # rather than reinstating anything from this file's history. Note that the Windows
+      # release asset is UNSIGNED until that is done.
 
       - name: Install dependencies and zip into release asset
         run: |
